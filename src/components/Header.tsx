@@ -15,17 +15,11 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const navLinks = [
-<<<<<<< Updated upstream
-        { name: 'Dashboard', id: 'Overview', path: '/dashboard' },
-        { name: 'Calendar', id: 'Calendar', path: '/calendar' },
-        { name: 'Copilot', id: 'Copilot', path: '/copilot' }
-=======
-        { name: 'Dashboard', id: 'Overview', route: '/dashboard' },
-        { name: 'Calendar', id: 'Calendar', route: '/calendar' },
-        { name: 'Copilot', id: 'Copilot', route: '/copilot' },
-        { name: 'Invoices', id: 'Invoices', route: '/invoices' },
-        { name: 'Reports', id: 'Reports', route: '/reports' }
->>>>>>> Stashed changes
+        { name: 'Dashboard', id: 'Overview', path: '/dashboard', route: '/dashboard' },
+        { name: 'Calendar', id: 'Calendar', path: '/calendar', route: '/calendar' },
+        { name: 'Copilot', id: 'Copilot', path: '/copilot', route: '/copilot' },
+        { name: 'Invoices', id: 'Invoices', path: '/invoices', route: '/invoices' },
+        { name: 'Reports', id: 'Reports', path: '/reports', route: '/reports' }
     ];
 
     return (
