@@ -266,98 +266,98 @@ const renderStepContent = () => {
             );
         default: return null;
     }
-};
 
-return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Vibe Background */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#FACC15]/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="w-full max-w-lg relative z-10">
-            {/* Header Badge */}
-            <div className="flex justify-center mb-8">
-                <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-[#171717] border border-white/10 shadow-lg">
-                    <User size={14} className="text-[#FACC15]" />
-                    <span className="text-xs font-bold text-gray-300 tracking-wide">ACCOUNT SETUP</span>
+    return (
+        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-6 relative overflow-hidden">
+            {/* Vibe Background */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#FACC15]/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+
+            <div className="w-full max-w-lg relative z-10">
+                {/* Header Badge */}
+                <div className="flex justify-center mb-8">
+                    <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-[#171717] border border-white/10 shadow-lg">
+                        <User size={14} className="text-[#FACC15]" />
+                        <span className="text-xs font-bold text-gray-300 tracking-wide">ACCOUNT SETUP</span>
+                    </div>
                 </div>
-            </div>
 
-            <AnimatePresence mode="wait">
-                {isCompleted ? (
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="bg-[#171717] border border-white/10 rounded-3xl p-10 text-center shadow-2xl"
-                    >
-                        <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                            <Check className="w-10 h-10 text-white" />
-                        </div>
-                        <h2 className="text-3xl font-bold text-white mb-2">Welcome, {formData.fullName.split(' ')[0]}!</h2>
-                        <p className="text-gray-400">Setting up your dashboard...</p>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="form-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-[#171717]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl"
-                    >
-                        {/* Progress Header */}
-                        <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">
-                                    {step === 1 ? "Create Account" : step === 2 ? "Business Info" : "Final Step"}
-                                </h2>
-                                <p className="text-gray-400 text-sm mt-1">
-                                    {step === 1 ? "Let's get you on the grid." : step === 2 ? "Tell us about your work." : "Secure your tax profile."}
-                                </p>
+                <AnimatePresence mode="wait">
+                    {isCompleted ? (
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-[#171717] border border-white/10 rounded-3xl p-10 text-center shadow-2xl"
+                        >
+                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                                <Check className="w-10 h-10 text-white" />
                             </div>
-                            <div className="w-12 h-12 rounded-full border-4 border-[#262626] flex items-center justify-center relative">
-                                <span className="text-sm font-bold text-white relative z-10">{step}/3</span>
-                                <svg className="absolute inset-0 w-full h-full -rotate-90">
-                                    <circle cx="20" cy="20" r="18" fill="transparent" stroke="#FACC15" strokeWidth="2" strokeDasharray="113" strokeDashoffset={113 - (113 * step) / 3} className="transition-all duration-500" />
-                                </svg>
+                            <h2 className="text-3xl font-bold text-white mb-2">Welcome, {formData.fullName.split(' ')[0]}!</h2>
+                            <p className="text-gray-400">Setting up your dashboard...</p>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="form-card"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#171717]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl"
+                        >
+                            {/* Progress Header */}
+                            <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">
+                                        {step === 1 ? "Create Account" : step === 2 ? "Business Info" : "Final Step"}
+                                    </h2>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        {step === 1 ? "Let's get you on the grid." : step === 2 ? "Tell us about your work." : "Secure your tax profile."}
+                                    </p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full border-4 border-[#262626] flex items-center justify-center relative">
+                                    <span className="text-sm font-bold text-white relative z-10">{step}/3</span>
+                                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                                        <circle cx="20" cy="20" r="18" fill="transparent" stroke="#FACC15" strokeWidth="2" strokeDasharray="113" strokeDashoffset={113 - (113 * step) / 3} className="transition-all duration-500" />
+                                    </svg>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Form Content */}
-                        <div className="min-h-[300px]">
-                            <AnimatePresence mode="wait" custom={direction}>
-                                <motion.div
-                                    key={step}
-                                    custom={direction}
-                                    initial={{ opacity: 0, x: direction * 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: direction * -20 }}
-                                    transition={{ duration: 0.2 }}
+                            {/* Form Content */}
+                            <div className="min-h-[300px]">
+                                <AnimatePresence mode="wait" custom={direction}>
+                                    <motion.div
+                                        key={step}
+                                        custom={direction}
+                                        initial={{ opacity: 0, x: direction * 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: direction * -20 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        {renderStepContent()}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+                                <button
+                                    onClick={handleBack}
+                                    disabled={step === 1}
+                                    className={`flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-white transition-colors ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
                                 >
-                                    {renderStepContent()}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
-                            <button
-                                onClick={handleBack}
-                                disabled={step === 1}
-                                className={`flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-white transition-colors ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
-                            >
-                                <ArrowLeft size={16} /> <span>Back</span>
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                className="bg-[#FACC15] hover:bg-[#EAB308] text-black font-bold py-3 px-8 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.2)] hover:shadow-[0_0_30px_rgba(250,204,21,0.4)] transition-all flex items-center space-x-2"
-                            >
-                                <span>{step === 3 ? "Get Started" : "Continue"}</span>
-                                <ArrowRight size={18} />
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                    <ArrowLeft size={16} /> <span>Back</span>
+                                </button>
+                                <button
+                                    onClick={handleNext}
+                                    className="bg-[#FACC15] hover:bg-[#EAB308] text-black font-bold py-3 px-8 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.2)] hover:shadow-[0_0_30px_rgba(250,204,21,0.4)] transition-all flex items-center space-x-2"
+                                >
+                                    <span>{step === 3 ? "Get Started" : "Continue"}</span>
+                                    <ArrowRight size={18} />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
-    </div>
-);
+    );
 }
