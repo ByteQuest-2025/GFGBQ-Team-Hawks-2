@@ -153,21 +153,34 @@ export const ReportsModule = () => {
                     <h3 className="text-xl font-bold text-white mb-6">Expense Distribution</h3>
                     <div className="h-[300px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RePieChart>
-                                <Pie
-                                    data={expenseData}
-                                    innerRadius={50}
-                                    outerRadius={100}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {expenseData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '12px' }} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                            </RePieChart>
+                            {expenseData ? (
+                                <RePieChart>
+                                    <Pie
+                                        data={expenseData}
+                                        innerRadius={50}
+                                        outerRadius={100}
+                                        dataKey="value"
+                                        stroke="none"
+                                    >
+                                        {expenseData.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '12px' }} />
+                                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                </RePieChart>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center text-[#9CA3AF] h-full">
+                                    <PieChart size={48} className="mb-4 opacity-50" />
+                                    <p className="text-sm font-medium">No expense data available</p>
+                                    <button
+                                        onClick={analyzeExpenses}
+                                        className="mt-4 text-[#FACC15] text-xs font-bold hover:underline"
+                                    >
+                                        Analyze Now
+                                    </button>
+                                </div>
+                            )}
                         </ResponsiveContainer>
                     </div>
                 </div>

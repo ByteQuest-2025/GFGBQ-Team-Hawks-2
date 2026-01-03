@@ -134,24 +134,42 @@ export function Dashboard({ user }: DashboardProps) {
                 {/* MAIN CONTENT */}
                 <main className="flex-1 w-full min-w-0 pb-12 pt-8">
                     <AnimatePresence mode="wait">
-                        {activeTab === 'Overview' && (
-                            <OverviewModule
-                                key="overview"
-                                firstName={firstName}
-                                complianceScore={complianceScore}
-                                nextDeadline={nextDeadline}
-                                upcomingDeadlines={upcomingDeadlines}
-                            />
-                        )}
-                        {activeTab === 'Invoices' && <InvoicesModule key="invoices" />}
-                        {activeTab === 'Reports' && <ReportsModule key="reports" />}
-                        {activeTab === 'Copilot' && <CopilotModule key="copilot" />}
-                        {activeTab === 'Settings' && <SettingsModule key="settings" />}
-                        {activeTab === 'Calendar' && (
-                            <div className="flex items-center justify-center h-full text-[#9CA3AF]">
-                                Calendar Module Coming Soon
-                            </div>
-                        )}
+                        {(() => {
+                            switch (activeTab) {
+                                case 'Overview':
+                                    return (
+                                        <OverviewModule
+                                            key="overview"
+                                            firstName={firstName}
+                                            complianceScore={complianceScore}
+                                            nextDeadline={nextDeadline}
+                                            upcomingDeadlines={upcomingDeadlines}
+                                        />
+                                    );
+                                case 'Invoices':
+                                    return <InvoicesModule key="invoices" />;
+                                case 'Reports':
+                                    return <ReportsModule key="reports" />;
+                                case 'Copilot':
+                                    return <CopilotModule key="copilot" />;
+                                case 'Settings':
+                                    return <SettingsModule key="settings" />;
+                                case 'Calendar':
+                                    return (
+                                        <motion.div
+                                            key="calendar"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -20 }}
+                                            className="flex items-center justify-center h-full text-[#9CA3AF]"
+                                        >
+                                            Calendar Module Coming Soon
+                                        </motion.div>
+                                    );
+                                default:
+                                    return null;
+                            }
+                        })()}
                     </AnimatePresence>
                 </main>
             </div>
