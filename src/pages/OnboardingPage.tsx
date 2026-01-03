@@ -49,7 +49,7 @@ export function OnboardingPage() {
                 await api.updateUserProfile(profile.id, {
                     name: formData.fullName,
                     email: formData.email,
-                    businessType: formData.businessType,
+                    type: formData.businessType as any, // Mapped to 'type' for backend
                     turnover: formData.turnover,
                     panNumber: formData.pan,
                     gstNumber: formData.gst ? 'YES' : 'NO',

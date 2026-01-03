@@ -1,8 +1,33 @@
 import { db } from '../firebase';
 import { BusinessProfile } from '../types/shared';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Mock DB for development without Service Account
-const mockDb: Record<string, any> = {};
+const BACKUP_FILE = path.join(__dirname, '../../users_backup.json');
+
+// Helper to load mock DB
+const loadMockDb = (): Record<string, any> => {
+    try {
+        if (fs.existsSync(BACKUP_FILE)) {
+            return JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf-8'));
+        }
+    } catch (e) {
+        console.error('Failed to load backup DB', e);
+    }
+    return {};
+};
+
+// Helper to save mock DB
+const saveMockDb = (data: Record<string, any>) => {
+    try {
+        fs.writeFileSync(BACKUP_FILE, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Failed to save backup DB', e);
+    }
+};
+
+let mockDb = loadMockDb();
 
 export const UserService = {
     // Create or Update User Profile
@@ -29,13 +54,17 @@ export const UserService = {
             const updatedDoc = await userRef.get();
             return { id: uid, ...updatedDoc.data() };
         } catch (error) {
-            console.warn(`[Mock Fallback] Firestore write failed. Using in-memory store.`, error);
-            // Mock logic
+            console.warn(`[Mock Fallback] Firestore write failed. Saving to local backup.`, error);
+
+            // Update in-memory and file
             if (!mockDb[uid]) {
                 mockDb[uid] = { ...data, createdAt: timestamp, updatedAt: timestamp };
             } else {
                 mockDb[uid] = { ...mockDb[uid], ...data, updatedAt: timestamp };
             }
+            console.log(`[MOCK] Persistence State for ${uid}:`, mockDb[uid]);
+            saveMockDb(mockDb);
+
             return { id: uid, ...mockDb[uid] };
         }
     },

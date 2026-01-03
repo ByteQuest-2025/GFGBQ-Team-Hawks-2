@@ -1,184 +1,216 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Send,
-    Bot,
-    Sparkles,
-    History,
-    ChevronRight,
-    Lightbulb
-} from 'lucide-react';
-import { api } from '../../lib/api';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Bot, Link as LinkIcon, Save, FileText, Sheet } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import { api } from '../../lib/api';
 
-export const CopilotModule = () => {
-    const { profile } = useStore();
-    const [messages, setMessages] = useState([
-        { id: 1, role: 'assistant', content: "Hello! I'm TaxAlly Copilot. I can help you with tax strategies, deduction rules, or financial planning. How can I assist you today?" }
-    ]);
+export function CopilotModule() {
+    const { profile, setProfile } = useStore();
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const messagesEndRef = useRef<null | HTMLDivElement>(null);
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
+        { role: 'assistant', content: "Hello! I'm your Tax Copilot. How can I help you today? (Try asking about 'GST' or '44ADA')" }
+    ]);
+    const [loading, setLoading] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    // Link Data Modal State
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [sheetId, setSheetId] = useState('');
+    const [docId, setDocId] = useState('');
 
     useEffect(() => {
-        scrollToBottom();
+        if (profile) {
+            setSheetId(profile.linkedSheetId || '');
+            setDocId(profile.linkedDocId || '');
+        }
+    }, [profile]);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
     }, [messages]);
 
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() || !profile) return;
 
-        const newMsg = { id: Date.now(), role: 'user', content: input };
-        setMessages([...messages, newMsg]);
+        const userMsg = input;
         setInput('');
-        setIsLoading(true);
+        setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setLoading(true);
 
         try {
-            // Call real backend Gemini API
-            const response = await api.chatWithCopilot(
-                input,
-                profile?.id || 'guest',
-                messages
-            );
+            // Use the API wrapper
+            const response = await api.chatWithCopilot(userMsg, profile.id);
 
             setMessages(prev => [...prev, {
-                id: Date.now() + 1,
                 role: 'assistant',
-                content: response.reply
+                content: response.response || "Sorry, I couldn't process that."
             }]);
-        } catch (error) {
-            console.error('Copilot error:', error);
-            setMessages(prev => [...prev, {
-                id: Date.now() + 1,
-                role: 'assistant',
-                content: "I'm having trouble connecting right now. Please try again in a moment!"
-            }]);
+        } catch (err) {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Error connecting to AI service." }]);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    const suggestedActions = [
-        "How can I save tax on rent?",
-        "Analyze my Q4 expenses",
-        "Am I eligible for 44ADA?",
-        "GST filing dates jan 2026"
-    ];
+    // Helper to extract IDs from URLs
+    const extractId = (input: string, type: 'sheet' | 'doc') => {
+        if (!input) return '';
+        // If it looks like a URL, try to parse
+        if (input.includes('google.com')) {
+            const regex = type === 'sheet'
+                ? /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/
+                : /\/document\/d\/([a-zA-Z0-9-_]+)/;
+            const match = input.match(regex);
+            return match ? match[1] : input; // Fallback to input if regex fails
+        }
+        return input; // Assume it's already an ID
+    };
+
+    const handleLinkSave = async () => {
+        if (!profile) return;
+
+        // Smart Extract
+        const cleanSheetId = extractId(sheetId, 'sheet');
+        const cleanDocId = extractId(docId, 'doc');
+
+        try {
+            await api.updateUserProfile(profile.id, {
+                linkedSheetId: cleanSheetId,
+                linkedDocId: cleanDocId
+            });
+            // Update local store
+            setProfile({ ...profile, linkedSheetId: cleanSheetId, linkedDocId: cleanDocId });
+            setShowLinkModal(false);
+            setMessages(prev => [...prev, { role: 'assistant', content: "✅ MCP Connected! I'm now synced with your Finance Sheet and Contracts." }]);
+        } catch (error) {
+            console.error('Failed to link data', error);
+        }
+    };
+
+    const loadDemoData = () => {
+        setSheetId('mock-sheet-id');
+        setDocId('mock-doc-id');
+    };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="flex h-[calc(100vh-140px)] gap-6"
-        >
-            {/* Left History Panel */}
-            <div className="w-80 hidden lg:flex flex-col bg-[#171717] border border-white/5 rounded-[2rem] p-6">
-                <div className="flex items-center gap-2 mb-6 text-[#FACC15]">
-                    <History size={20} />
-                    <h3 className="font-bold">Session History</h3>
+        <div className="flex flex-col h-full bg-[#111] rounded-2xl border border-white/5 overflow-hidden">
+            {/* Header */}
+            <div className="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-[#15161a]">
+                <div className="flex items-center space-x-2">
+                    <Bot className="h-5 w-5 text-indigo-500" />
+                    <span className="font-semibold text-white">Tax Copilot Workspace</span>
                 </div>
-
-                <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    {['GST Savings Strategy', 'Depreciation Audit', 'FY25 Planning', 'Invoice Verification'].map((item, i) => (
-                        <button key={i} className="w-full text-left p-3 rounded-xl hover:bg-white/5 text-[#9CA3AF] hover:text-white transition-colors group flex items-center justify-between">
-                            <span className="text-sm font-medium truncate">{item}</span>
-                            <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                    ))}
-                </div>
-
-                <div className="pt-4 border-t border-white/5">
-                    <button className="w-full bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl text-sm font-bold transition-colors">
-                        + New Chat
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => setShowLinkModal(!showLinkModal)}
+                        className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${showLinkModal ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white bg-[#222]'}`}
+                        title="Link Data"
+                    >
+                        <LinkIcon className="h-4 w-4" />
+                        <span className="text-sm font-medium">Connect MCP</span>
                     </button>
                 </div>
             </div>
 
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col bg-[#171717] border border-white/5 rounded-[2rem] relative overflow-hidden">
-                {/* Chat Header */}
-                <div className="p-6 border-b border-white/5 flex items-center gap-3 bg-[#0A0A0A]/50 backdrop-blur-md">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FACC15] to-orange-500 flex items-center justify-center text-black shadow-lg">
-                        <Bot size={20} />
+            {/* Link Data Overlay */}
+            {showLinkModal && (
+                <div className="p-6 bg-[#23242a] border-b border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-4 duration-200">
+                    <div className="md:col-span-2 flex justify-between items-center mb-2">
+                        <h3 className="text-white font-semibold flex items-center gap-2">
+                            <LinkIcon className="h-4 w-4 text-indigo-400" /> Connect Master Control Program (MCP)
+                        </h3>
+                        <button onClick={loadDemoData} className="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 flex items-center gap-1.5">
+                            <span>🪄</span> Auto-fill Demo Data
+                        </button>
                     </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-white">TaxAlly Copilot</h2>
-                        <p className="text-xs text-green-400 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Online
-                        </p>
-                    </div>
-                </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                    {messages.map((msg) => (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            key={msg.id}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                            <Sheet size={14} className="text-green-500" /> Financial Data Source
+                        </label>
+                        <input
+                            value={sheetId}
+                            onChange={(e) => setSheetId(e.target.value)}
+                            className="w-full bg-[#15161a] border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:border-indigo-500 outline-none placeholder-gray-600 transition-all focus:ring-1 focus:ring-indigo-500"
+                            placeholder="Paste Google Sheet Link (https://docs.google...)"
+                        />
+                        <p className="text-[10px] text-gray-500">Paste the full URL, we'll extract the ID.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                            <FileText size={14} className="text-blue-500" /> Contract/Notice Source
+                        </label>
+                        <input
+                            value={docId}
+                            onChange={(e) => setDocId(e.target.value)}
+                            className="w-full bg-[#15161a] border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:border-indigo-500 outline-none placeholder-gray-600 transition-all focus:ring-1 focus:ring-indigo-500"
+                            placeholder="Paste Google Doc Link (https://docs.google...)"
+                        />
+                        <p className="text-[10px] text-gray-500">Paste the full URL, we'll extract the ID.</p>
+                    </div>
+                    <div className="md:col-span-2 pt-2">
+                        <button
+                            onClick={handleLinkSave}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
                         >
-                            <div className={`max-w-[80%] p-4 rounded-2xl leading-relaxed ${msg.role === 'user'
-                                    ? 'bg-[#FACC15] text-black font-medium rounded-tr-none'
-                                    : 'bg-[#262626] text-white border border-white/5 rounded-tl-none'
-                                }`}>
-                                {msg.role === 'assistant' && (
-                                    <div className="flex items-center gap-2 mb-2 text-[#FACC15] text-xs font-bold uppercase tracking-wide">
-                                        <Sparkles size={12} /> AI Strategy
-                                    </div>
-                                )}
-                                {msg.content}
-                            </div>
-                        </motion.div>
-                    ))}
-                    <div ref={messagesEndRef} />
+                            <Save size={16} /> Save & Sync MCP
+                        </button>
+                    </div>
                 </div>
+            )}
 
-                {/* Input Area */}
-                <div className="p-6 bg-[#0A0A0A]/80 backdrop-blur-md">
-                    {/* Suggested Actions */}
-                    {messages.length < 3 && (
-                        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-                            {suggestedActions.map((action, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setInput(action)}
-                                    className="whitespace-nowrap px-4 py-2 bg-white/5 hover:bg-[#FACC15]/20 hover:text-[#FACC15] border border-white/10 rounded-full text-xs font-medium text-[#9CA3AF] transition-all"
-                                >
-                                    {action}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="relative group">
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FACC15] to-orange-500 rounded-xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
-                        <div className="relative flex items-center bg-[#0A0A0A] rounded-xl border border-white/10 focus-within:border-[#FACC15]/50 transition-colors">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Ask about tax savings, invoices, or audit risks..."
-                                className="w-full bg-transparent p-4 text-white focus:outline-none placeholder:text-[#525252]"
-                            />
-                            <button
-                                onClick={handleSend}
-                                className="p-2 mr-2 bg-[#FACC15] hover:bg-[#EAB308] rounded-lg text-black transition-colors"
-                            >
-                                <Send size={18} />
-                            </button>
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={scrollRef}>
+                {messages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div
+                            className={`max-w-[70%] rounded-2xl px-6 py-4 text-base leading-relaxed ${msg.role === 'user'
+                                ? 'bg-indigo-600 text-white rounded-br-none'
+                                : 'bg-[#23242a] text-gray-200 rounded-bl-none border border-gray-800'
+                                }`}
+                        >
+                            {// Simple markdown-like bold handling
+                                msg.content.split('**').map((part, i) =>
+                                    i % 2 === 1 ? <strong key={i} className="text-white font-semibold">{part}</strong> : part
+                                )
+                            }
                         </div>
                     </div>
-                    <p className="text-center text-[#525252] text-[10px] mt-2">
-                        TaxAlly Copilot can make mistakes. Verify important tax info.
-                    </p>
+                ))}
+                {loading && (
+                    <div className="flex justify-start">
+                        <div className="bg-[#23242a] rounded-2xl px-6 py-4 border border-gray-800">
+                            <div className="flex space-x-2">
+                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100"></div>
+                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-6 bg-[#15161a] border-t border-gray-800">
+                <div className="relative max-w-4xl mx-auto">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        placeholder="Ask about GST, TDS, or Planning..."
+                        className="w-full bg-[#0f1014] text-white rounded-xl pl-6 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-gray-800 placeholder-gray-600 shadow-lg"
+                    />
+                    <button
+                        onClick={handleSend}
+                        disabled={loading}
+                        className="absolute right-3 top-3 p-2 bg-indigo-600 rounded-lg text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <Send className="h-5 w-5" />
+                    </button>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
-};
+}

@@ -58,13 +58,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const deadlines = generateDeadlines(obligations);
         const alerts = generateAlerts(deadlines);
 
-        setState({
+        setState(prev => ({
+            ...prev,
             profile,
             obligations,
             deadlines,
             alerts,
             isOnboarded: true
-        });
+        }));
 
         // Save to localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
@@ -112,6 +113,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             processProfile(state.profile);
         }
     };
+
+
 
     return (
         <StoreContext.Provider

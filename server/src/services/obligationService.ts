@@ -39,6 +39,6 @@ export const ObligationService = {
     // Get User Obligations
     async getUserObligations(userId: string) {
         const snapshot = await obligationsCollection.where('userId', '==', userId).get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
     }
 };

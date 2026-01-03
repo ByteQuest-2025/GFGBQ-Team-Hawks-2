@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { DocumentProcessorService, DocumentType } from '../services/documentProcessorService';
 import { FinancialReportService } from '../services/financialReportService';
+import { TaxDocumentParserService } from '../services/taxDocumentParserService';
 
 const router = Router();
 
@@ -34,6 +35,74 @@ router.post('/report', (req, res) => {
         res.json(report);
     } catch (error) {
         res.status(500).json({ error: 'Report generation failed' });
+    }
+});
+
+// POST /api/v1/documents/parse-tax - Parse Indian tax documents (Form 16, 26AS, etc.)
+router.post('/parse-tax', async (req, res) => {
+    try {
+        const { fileBase64, mimeType, docType } = req.body;
+
+        if (!fileBase64) {
+            return res.status(400).json({ error: 'Missing fileBase64' });
+        }
+
+        const result = await TaxDocumentParserService.parseDocument(
+            fileBase64,
+            mimeType || 'application/pdf',
+            docType
+        );
+
+        res.json({
+            success: true,
+            documentType: result.type,
+            data: result.data,
+            identifiers: result.extractedIdentifiers
+        });
+    } catch (error) {
+        console.error('Tax document parsing error:', error);
+        res.status(500).json({ error: 'Tax document parsing failed' });
+    }
+});
+
+// POST /api/v1/documents/parse-bank-statement - Parse bank statement and get categorized transactions
+router.post('/parse-bank-statement', async (req, res) => {
+    try {
+        const { fileBase64, mimeType } = req.body;
+
+        if (!fileBase64) {
+            return res.status(400).json({ error: 'Missing fileBase64' });
+        }
+
+        const result = await TaxDocumentParserService.parseBankStatement(
+            fileBase64,
+            mimeType || 'application/pdf'
+        );
+
+        // Format for Google Sheets export
+        const sheetsData = {
+            headers: ['Date', 'Description', 'Debit', 'Credit', 'Balance', 'Category', 'GST Relevant'],
+            rows: result.transactions.map(txn => [
+                txn.date,
+                txn.description,
+                txn.debit || '',
+                txn.credit || '',
+                txn.balance || '',
+                txn.category || 'UNCATEGORIZED',
+                txn.gstRelevant ? 'Yes' : 'No'
+            ]),
+            summary: result.summary
+        };
+
+        res.json({
+            success: true,
+            parsed: result,
+            sheetsFormat: sheetsData,
+            confidence: result.confidence
+        });
+    } catch (error) {
+        console.error('Bank statement parsing error:', error);
+        res.status(500).json({ error: 'Bank statement parsing failed' });
     }
 });
 

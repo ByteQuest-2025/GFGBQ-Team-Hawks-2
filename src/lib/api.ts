@@ -12,8 +12,7 @@ export const api = {
             uid: user.uid,
             email: user.email,
             name: user.displayName || 'User',
-            photoURL: user.photoURL,
-            businessType: 'freelancer'
+            photoURL: user.photoURL
         };
 
         const response = await fetch(`${API_URL}/auth/sync`, {
@@ -145,6 +144,186 @@ export const api = {
             body: JSON.stringify(data)
         });
         if (!response.ok) throw new Error('Failed to update user profile');
+        return response.json();
+    },
+
+    // ==========================================================================
+    // MCP (TaxAlly) Tools
+    // ==========================================================================
+
+    /**
+     * MCP - Get available tools
+     */
+    async getMCPTools() {
+        const response = await fetch(`${API_URL}/mcp/tools`);
+        if (!response.ok) throw new Error('Failed to fetch MCP tools');
+        return response.json();
+    },
+
+    /**
+     * MCP - Execute a tool
+     */
+    async executeMCPTool(toolName: string, params: Record<string, any>) {
+        const response = await fetch(`${API_URL}/mcp/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tool: toolName, params })
+        });
+        if (!response.ok) throw new Error('Failed to execute MCP tool');
+        return response.json();
+    },
+
+    /**
+     * MCP - Calculate income tax with regime comparison
+     */
+    async calculateIncomeTax(income: number, deductions?: { d80c?: number; d80d?: number; hra?: number; other?: number }) {
+        const response = await fetch(`${API_URL}/mcp/calculate-tax`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                income,
+                deductions_80c: deductions?.d80c,
+                deductions_80d: deductions?.d80d,
+                hra_exemption: deductions?.hra,
+                other_deductions: deductions?.other
+            })
+        });
+        if (!response.ok) throw new Error('Failed to calculate tax');
+        return response.json();
+    },
+
+    /**
+     * MCP - Check GST compliance
+     */
+    async checkGSTCompliance(turnover: number, isService: boolean, state: string, interState?: boolean) {
+        const response = await fetch(`${API_URL}/mcp/check-gst`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                turnover,
+                is_service_provider: isService,
+                state,
+                inter_state_sales: interState
+            })
+        });
+        if (!response.ok) throw new Error('Failed to check GST');
+        return response.json();
+    },
+
+    /**
+     * MCP - Get tax deadlines
+     */
+    async getTaxDeadlines(profileType: 'individual' | 'business', hasGST: boolean) {
+        const response = await fetch(`${API_URL}/mcp/deadlines?profile_type=${profileType}&has_gst=${hasGST}`);
+        if (!response.ok) throw new Error('Failed to fetch deadlines');
+        return response.json();
+    },
+
+    /**
+     * MCP - Check presumptive taxation (44AD/44ADA)
+     */
+    async checkPresumptiveTax(grossReceipts: number, businessType: 'professional' | 'trader' | 'manufacturer', digitalPercentage?: number) {
+        const response = await fetch(`${API_URL}/mcp/presumptive`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                gross_receipts: grossReceipts,
+                business_type: businessType,
+                digital_turnover_percentage: digitalPercentage
+            })
+        });
+        if (!response.ok) throw new Error('Failed to check presumptive tax');
+        return response.json();
+    },
+
+    /**
+     * MCP - Categorize transaction
+     */
+    async categorizeTransaction(description: string, amount: number, type: 'credit' | 'debit') {
+        const response = await fetch(`${API_URL}/mcp/categorize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description, amount, type })
+        });
+        if (!response.ok) throw new Error('Failed to categorize transaction');
+        return response.json();
+    },
+
+    // ==========================================================================
+    // Tax Document Parsing
+    // ==========================================================================
+
+    /**
+     * DOCUMENTS - Parse Indian tax document (Form 16, 26AS, etc.)
+     */
+    async parseTaxDocument(fileBase64: string, mimeType: string, docType?: string) {
+        const response = await fetch(`${API_URL}/documents/parse-tax`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileBase64, mimeType, docType })
+        });
+        if (!response.ok) throw new Error('Failed to parse tax document');
+        return response.json();
+    },
+
+    /**
+     * DOCUMENTS - Parse bank statement with categorization
+     */
+    async parseBankStatement(fileBase64: string, mimeType?: string) {
+        const response = await fetch(`${API_URL}/documents/parse-bank-statement`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileBase64, mimeType: mimeType || 'application/pdf' })
+        });
+        if (!response.ok) throw new Error('Failed to parse bank statement');
+        return response.json();
+    },
+
+    // ==========================================================================
+    // TaxAlly HuggingFace Server (Local LLM)
+    // ==========================================================================
+
+    /**
+     * TAXALLY - Check if TaxAlly HuggingFace server is running
+     */
+    async checkTaxAllyServer() {
+        const response = await fetch(`${API_URL}/taxally/health`);
+        if (!response.ok) throw new Error('Failed to check TaxAlly server');
+        return response.json();
+    },
+
+    /**
+     * TAXALLY - Chat directly with TaxAlly HuggingFace agent
+     */
+    async chatWithTaxAlly(message: string, sessionId?: string, profile?: any) {
+        const response = await fetch(`${API_URL}/taxally/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, session_id: sessionId, profile })
+        });
+        if (!response.ok) throw new Error('TaxAlly server unavailable');
+        return response.json();
+    },
+
+    /**
+     * TAXALLY - Get TaxAlly tools
+     */
+    async getTaxAllyTools() {
+        const response = await fetch(`${API_URL}/taxally/tools`);
+        if (!response.ok) throw new Error('Failed to get TaxAlly tools');
+        return response.json();
+    },
+
+    /**
+     * TAXALLY - Execute TaxAlly tool
+     */
+    async executeTaxAllyTool(tool: string, params: Record<string, any>) {
+        const response = await fetch(`${API_URL}/taxally/tools/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tool, params })
+        });
+        if (!response.ok) throw new Error('Failed to execute TaxAlly tool');
         return response.json();
     }
 };

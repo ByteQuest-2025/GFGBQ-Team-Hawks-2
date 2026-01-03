@@ -45,5 +45,34 @@ export const GoogleService = {
             console.error('Google Sheets API Error:', error);
             throw new Error('Failed to fetch Google Sheet');
         }
+    },
+
+    /**
+     * Fetch Content from a Google Doc (Contract/Notice)
+     */
+    async fetchDocContent(documentId: string) {
+        // FALLBACK: Mock Data
+        if (!process.env.GOOGLE_CLIENT_EMAIL) {
+            console.warn('⚠️ No Google Credentials. Returning Mock Doc Content.');
+            return `
+**SERVICE AGREEMENT (MOCK)**
+This Agreement is made between **Alpha Corp** (Client) and **Freelancer** (Contractor).
+1. **Scope**: Web Development Services.
+2. **Fees**: INR 50,000 per month.
+3. **Termination**: 30 days notice required.
+4. **Confidentiality**: Standard NDA applies.
+            `;
+        }
+
+        try {
+            const docs = google.docs({ version: 'v1', auth });
+            const response = await docs.documents.get({ documentId });
+            // Simple text extractor
+            const text = response.data.body?.content?.map(c => c.paragraph?.elements?.map(e => e.textRun?.content).join('')).join('\n');
+            return text || "No content found.";
+        } catch (error) {
+            console.error('Google Docs API Error:', error);
+            throw new Error('Failed to fetch Google Doc');
+        }
     }
 };

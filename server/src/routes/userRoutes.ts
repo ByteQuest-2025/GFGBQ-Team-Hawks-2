@@ -25,10 +25,11 @@ router.put('/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const updates = req.body;
+        console.log(`[USER] Updating Profile ${userId}:`, JSON.stringify(updates, null, 2));
 
-        // Validate required fields
-        if (!updates.name && !updates.type && !updates.email) {
-            return res.status(400).json({ error: 'At least one field required for update' });
+        // Validate that we have something to update
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No update fields provided' });
         }
 
         const updated = await UserService.syncUser(userId, updates);

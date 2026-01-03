@@ -9,19 +9,32 @@ const router = Router();
 router.post('/sync', verifyAuth, async (req, res) => {
     try {
         const { uid, email, name, picture } = req.user!;
-        const { businessType } = req.body; // Optional extra data from frontend
+        // Optional extra data from frontend (only use if provided)
+        const { businessType } = req.body;
+
+        console.log(`[AUTH] Syncing user ${uid}:`, { email, name, businessType });
 
         // Sync with Firestore (or Mock DB)
-        const result = await UserService.syncUser(uid, {
+        // Only update 'type' if businessType is explicitly provided in the request
+        const updateData: any = {
             email: email || '',
             name: name || 'User',
-            photoURL: picture,
-            type: businessType as any
-        });
+            photoURL: picture
+        };
+        if (businessType) updateData.type = businessType;
+
+        const result = await UserService.syncUser(uid, updateData);
 
         // Check profile completeness logic
         const profile = await UserService.getUser(uid);
-        const isProfileComplete = !!(profile?.name && profile?.type && profile?.turnover);
+        const isProfileComplete = profile?.profileCompleted === true || !!(profile?.name && profile?.type && profile?.turnover);
+
+        console.log(`[AUTH] Profile status for ${uid}:`, {
+            isProfileComplete,
+            hasType: !!profile?.type,
+            hasTurnover: !!profile?.turnover,
+            profileCompletedFlag: profile?.profileCompleted
+        });
 
         res.json({
             success: true,

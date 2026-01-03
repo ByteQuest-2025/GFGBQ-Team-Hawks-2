@@ -15,6 +15,8 @@ export interface BusinessProfile {
     panNumber: string;
     email: string;
     photoURL?: string;
+    linkedSheetId?: string;
+    linkedDocId?: string;
     createdAt: Date;
 }
 

@@ -16,6 +16,8 @@ export interface BusinessProfile {
   businessName?: string;
   address?: string;
   photoURL?: string;
+  linkedSheetId?: string;
+  linkedDocId?: string;
   createdAt: Date;
 }
 
