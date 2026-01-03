@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { StoreProvider } from './lib/store';
-import { Navbar } from './components/Navbar';
 import { LandingPage } from './pages/LandingPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Calendar } from './pages/Calendar';
+import { Invoices } from './pages/Invoices';
+import { Reports } from './pages/Reports';
+import { Copilot } from './pages/Copilot';
+import { Settings } from './pages/Settings';
 import { SignInModal } from './components/SignInModal';
-import { SidebarCopilot } from './components/SidebarCopilot';
+import { Layout } from './components/Layout';
 import { useStore } from './lib/store';
 import { signInWithGoogle } from './lib/firebase';
 import { api } from './lib/api';
@@ -105,6 +108,7 @@ function AppContent() {
     <>
       <div className="bg-[#0A0A0A] min-h-screen text-white">
         <Routes>
+          {/* Public Routes */}
           <Route
             path="/"
             element={
@@ -120,9 +124,15 @@ function AppContent() {
           />
           <Route path="/onboard" element={<OnboardingPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/dashboard" element={isLoggedIn ? <div className="page"><Dashboard user={user} /></div> : <Navigate to="/" />} />
-          <Route path="/calendar" element={isLoggedIn ? <Calendar /> : <Navigate to="/" />} />
+          {/* Protected Routes Wrapped in Layout */}
+          <Route element={isLoggedIn ? <Layout user={user} onLogout={handleLogout} /> : <Navigate to="/" />}>
+            <Route path="/dashboard" element={<Dashboard user={user} />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/copilot" element={<Copilot />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

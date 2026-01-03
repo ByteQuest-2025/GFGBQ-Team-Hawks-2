@@ -1,14 +1,14 @@
-import React from 'react';
-import { 
-    Search, 
-    CheckCircle2, 
-    ShieldCheck, 
-    TrendingUp, 
-    Calendar as CalendarIcon, 
-    AlertCircle, 
-    Wallet, 
-    ArrowRight, 
-    Bot 
+import React, { useEffect, useState } from 'react';
+import {
+    Search,
+    CheckCircle2,
+    ShieldCheck,
+    TrendingUp,
+    Calendar as CalendarIcon,
+    AlertCircle,
+    Wallet,
+    ArrowRight,
+    Bot
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -19,14 +19,39 @@ interface OverviewModuleProps {
     upcomingDeadlines: any[];
 }
 
-export const OverviewModule: React.FC<OverviewModuleProps> = ({ 
-    firstName, 
-    complianceScore, 
-    nextDeadline, 
-    upcomingDeadlines 
+export const OverviewModule: React.FC<OverviewModuleProps> = ({
+    firstName,
+    complianceScore,
+    nextDeadline,
+    upcomingDeadlines
 }) => {
+    // Dynamic State for Tax Saved
+    const [savedTax, setSavedTax] = useState(45000);
+
+    useEffect(() => {
+        // Load initial value
+        const stored = localStorage.getItem('taxSaved');
+        if (stored) setSavedTax(parseFloat(stored));
+
+        // Listen for updates (e.g. from Scanner)
+        const handleUpdate = () => {
+            const updated = localStorage.getItem('taxSaved');
+            if (updated) setSavedTax(parseFloat(updated));
+        };
+
+        window.addEventListener('tax-update', handleUpdate);
+        return () => window.removeEventListener('tax-update', handleUpdate);
+    }, []);
+
+    // Format currency
+    const formattedSavedTax = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+    }).format(savedTax);
+
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -109,7 +134,7 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
                                 <Wallet className="w-6 h-6" />
                             </div>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-1">₹45k</h3>
+                        <h3 className="text-xl font-bold text-white mb-1">{formattedSavedTax}</h3>
                         <p className="text-[#94A3B8] text-sm font-medium">Est. Tax Saved</p>
                     </div>
                 </div>

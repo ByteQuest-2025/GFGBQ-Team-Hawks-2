@@ -6,62 +6,97 @@ import {
     Calendar as CalendarIcon,
     Bell,
     RefreshCw,
-    CheckCircle2,
-    FileText,
     AlertCircle,
     Search,
-    Filter,
-    Sparkles,
     X,
-    ShieldCheck,
-    LogOut,
-    LayoutDashboard,
-    Bot
+    Bot,
+    FileText,
+    Plus,
+    CheckCircle2,
+    Clock,
+    DollarSign,
+    Tag,
+    Type,
+    Shield,
+    Lock,
+    Check,
+    Loader
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
 
 // --- Mock Data ---
-const EVENTS = [
-    { id: 1, date: '2026-01-07', title: 'TDS Payment', type: 'TDS', amount: '₹12,400', status: 'Pending', description: 'Deducted on payments to contractors.' },
-    { id: 2, date: '2026-01-11', title: 'GSTR-1 Filing', type: 'GST', amount: 'N/A', status: 'Pending', description: 'Outward supplies details for Dec 2025.' },
-    { id: 3, date: '2026-01-15', title: 'PF Contribution', type: 'Payroll', amount: '₹8,500', status: 'Done', description: 'Employee Provident Fund for Dec.' },
-    { id: 4, date: '2026-01-20', title: 'GSTR-3B Filing', type: 'GST', amount: '₹45,200', status: 'Pending', description: 'Monthly summary return.' },
-    { id: 5, date: '2026-01-30', title: 'TCS Deposit', type: 'TCS', amount: '₹2,100', status: 'Pending', description: 'Tax collected at source.' },
+const MOCK_EVENTS = [
+    { id: 1, date: '2026-01-07', title: 'TDS Payment', type: 'TDS', amount: '₹12,400', status: 'Pending', description: 'Deducted on payments to contractors.', priority: 'High' },
+    { id: 2, date: '2026-01-11', title: 'GSTR-1 Filing', type: 'GST', amount: 'N/A', status: 'Pending', description: 'Outward supplies details for Dec 2025.', priority: 'High' },
+    { id: 3, date: '2026-01-15', title: 'PF Contribution', type: 'Payroll', amount: '₹8,500', status: 'Done', description: 'Employee Provident Fund for Dec.', priority: 'Medium' },
+    { id: 4, date: '2026-01-20', title: 'GSTR-3B Filing', type: 'GST', amount: '₹45,200', status: 'Pending', description: 'Monthly summary return.', priority: 'High' },
+    { id: 5, date: '2026-01-30', title: 'TCS Deposit', type: 'TCS', amount: '₹2,100', status: 'Pending', description: 'Tax collected at source.', priority: 'Medium' },
 ];
 
-const CATEGORIES = {
+const CATEGORIES: any = {
     GST: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     TDS: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     Payroll: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
     TCS: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    'Vendor Payment': 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+    'Business Meeting': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     Other: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
 };
 
-// Dot colors for calendar view
-const DOT_COLORS = {
+const DOT_COLORS: any = {
     GST: 'bg-emerald-500',
     TDS: 'bg-amber-500',
     Payroll: 'bg-purple-500',
     TCS: 'bg-blue-500',
+    'Vendor Payment': 'bg-pink-500',
+    'Business Meeting': 'bg-cyan-500',
     Other: 'bg-gray-500',
 };
 
-export function Calendar() {
-    const navigate = useNavigate();
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1)); // Jan 2026
-    const [selectedEvent, setSelectedEvent] = useState<any>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [showSyncToast, setShowSyncToast] = useState(false);
+interface CalendarEvent {
+    id: number;
+    date: string;
+    title: string;
+    type: string;
+    amount: string;
+    status: string;
+    description: string;
+    priority: string;
+}
 
-    // User Data Recovery
-    const [userDisplayName, setUserDisplayName] = useState('User');
+export function Calendar() {
+    const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1)); // Jan 2026
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Sync Portal State
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'connecting' | 'authenticating' | 'fetching' | 'success' | 'failed'>('idle');
+    const [lastSynced, setLastSynced] = useState<string | null>(null);
+    const [syncToastMessage, setSyncToastMessage] = useState('');
+
+    // Add Event Modal State
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const [newEvent, setNewEvent] = useState({
+        title: '',
+        type: 'GST',
+        date: '',
+        amount: '',
+        description: '',
+        priority: 'Medium',
+        reminder: false
+    });
+
+    // Load events from LocalStorage or fallback to Mock
     useEffect(() => {
-        const storedData = localStorage.getItem('onboarding_data');
-        if (storedData) {
-            try {
-                const u = JSON.parse(storedData);
-                setUserDisplayName(u.fullName || u.ownerName || 'User');
-            } catch (e) { }
+        const storedEvents = localStorage.getItem('calendar_events');
+        if (storedEvents) {
+            setEvents(JSON.parse(storedEvents));
+        } else {
+            setEvents(MOCK_EVENTS);
+            localStorage.setItem('calendar_events', JSON.stringify(MOCK_EVENTS));
         }
     }, []);
 
@@ -78,33 +113,114 @@ export function Calendar() {
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
+    // --- Search Logic ---
+    const filteredEvents = events.filter(ev => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            ev.title.toLowerCase().includes(query) ||
+            ev.type.toLowerCase().includes(query) ||
+            ev.date.includes(query)
+        );
+    });
+
+    // --- Sync Portal Logic ---
     const handleSync = () => {
-        setIsSyncing(true);
+        if (syncStatus !== 'idle') return;
+
+        // Phase 1: Connecting
+        setSyncStatus('connecting');
+
+        // Phase 2: Authenticating
         setTimeout(() => {
-            setIsSyncing(false);
-            setShowSyncToast(true);
-            setTimeout(() => setShowSyncToast(false), 3000);
-        }, 2000);
-    };
+            setSyncStatus('authenticating');
+        }, 1200);
 
-    const handleLogout = () => {
-        localStorage.removeItem('user_session');
-        navigate('/');
-        window.location.reload();
-    };
+        // Phase 3: Fetching
+        setTimeout(() => {
+            setSyncStatus('fetching');
+        }, 2500);
 
-    const handleReset = () => {
-        if (confirm("Reset Demo data?")) {
-            localStorage.clear();
-            navigate('/');
-            window.location.reload();
-        }
+        // Phase 4: Success & Data Update
+        setTimeout(() => {
+            setSyncStatus('success');
+            setLastSynced('Just Now');
+            setSyncToastMessage('✅ Sync Successful! 1 New Deadline synchronized from GST Portal.');
+
+            // Add Mock "Synced" Event
+            const newSyncedEvent: CalendarEvent = {
+                id: Date.now(),
+                date: '2026-01-25',
+                title: 'Special Audit Task',
+                type: 'Other',
+                amount: 'TBD',
+                status: 'Pending',
+                description: 'Automatically imported from Government Portal.',
+                priority: 'High'
+            };
+
+            const updated = [...events, newSyncedEvent];
+            setEvents(updated);
+            localStorage.setItem('calendar_events', JSON.stringify(updated));
+
+            // Reset to Idle after showing success state
+            setTimeout(() => {
+                setSyncStatus('idle');
+                setSyncToastMessage('');
+            }, 4000);
+
+        }, 4500);
     };
 
     const isToday = (day: number) => {
-        // Mocking Jan 3rd 2026 as today
         return day === 3 && currentDate.getMonth() === 0 && currentDate.getFullYear() === 2026;
     };
+
+    // --- Add Event Logic ---
+    const handleAddEventChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setNewEvent(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSaveEvent = () => {
+        if (!newEvent.title || !newEvent.date) {
+            alert("Please fill in at least Title and Date.");
+            return;
+        }
+
+        const eventToSave: CalendarEvent = {
+            id: Date.now(),
+            title: newEvent.title,
+            type: newEvent.type,
+            date: newEvent.date,
+            amount: newEvent.amount ? `₹${newEvent.amount}` : 'N/A',
+            status: 'Pending',
+            description: newEvent.description || 'No additional notes',
+            priority: newEvent.priority
+        };
+
+        const updatedEvents = [...events, eventToSave];
+        setEvents(updatedEvents);
+        localStorage.setItem('calendar_events', JSON.stringify(updatedEvents));
+
+        setShowAddModal(false);
+        setNewEvent({ title: '', type: 'GST', date: '', amount: '', description: '', priority: 'Medium', reminder: false });
+
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+    };
+
+    const applyQuickPreset = (preset: string) => {
+        const today = new Date().toISOString().split('T')[0];
+        if (preset === 'Monthly GST') {
+            setNewEvent({ ...newEvent, title: 'Monthly GST Filing', type: 'GST', priority: 'High', description: 'Regular monthly GSTR-3B filing.', date: today });
+        } else if (preset === 'Quarterly Tax') {
+            setNewEvent({ ...newEvent, title: 'Advance Tax Q4', type: 'TDS', priority: 'High', description: 'Quarterly advance tax payment.', date: today });
+        } else if (preset === 'Rent') {
+            setNewEvent({ ...newEvent, title: 'Office Rent Payment', type: 'Vendor Payment', priority: 'Medium', description: 'Monthly office rent.', date: today });
+        }
+    };
+
 
     const renderCalendarDays = () => {
         const grid = [];
@@ -116,16 +232,24 @@ export function Calendar() {
         // Days
         for (let day = 1; day <= days; day++) {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const daysEvents = EVENTS.filter(e => e.date === dateStr);
+            // Filter events for this day based on search query
+            const daysEvents = filteredEvents.filter(e => e.date === dateStr);
+            const isMatch = daysEvents.length > 0;
+            const isFaded = searchQuery && !isMatch; // Fade out days that don't match query
 
             grid.push(
                 <motion.div
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    animate={{ opacity: isFaded ? 0.3 : 1 }}
                     transition={{ delay: day * 0.01 }}
                     key={day}
-                    className={`min-h-[120px] border-b border-r border-white/5 p-3 transition-colors hover:bg-white/5 relative group cursor-pointer ${isToday(day) ? 'bg-[#FACC15]/5' : 'bg-transparent'}`}
-                    onClick={() => daysEvents.length > 0 && setSelectedEvent(daysEvents[0])}
+                    className={`min-h-[120px] border-b border-r border-white/5 p-3 transition-colors hover:bg-white/5 relative group cursor-pointer 
+                        ${isToday(day) ? 'bg-[#FACC15]/5' : 'bg-transparent'}
+                        ${(syncStatus === 'success' && day === 25) ? 'animate-pulse bg-green-500/10' : ''} 
+                    `}
+                    onClick={() => {
+                        if (daysEvents.length > 0) setSelectedEvent(daysEvents[0]);
+                    }}
                 >
                     <div className="flex justify-between items-start">
                         <span className={`text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full ${isToday(day) ? 'bg-[#FACC15] text-black shadow-lg shadow-yellow-500/20 scale-110' : 'text-gray-400 group-hover:text-white'}`}>
@@ -134,7 +258,7 @@ export function Calendar() {
                         {daysEvents.length > 0 && (
                             <div className="flex -space-x-1">
                                 {daysEvents.map((ev, i) => (
-                                    <div key={i} className={`w-2.5 h-2.5 rounded-full border border-[#0A0A0A] ${DOT_COLORS[ev.type as keyof typeof CATEGORIES] || 'bg-gray-500'}`}></div>
+                                    <div key={i} className={`w-2.5 h-2.5 rounded-full border border-[#0A0A0A] ${DOT_COLORS[ev.type] || 'bg-gray-500'}`}></div>
                                 ))}
                             </div>
                         )}
@@ -142,7 +266,7 @@ export function Calendar() {
 
                     <div className="mt-3 space-y-1.5 overflow-y-auto max-h-[80px] custom-scrollbar">
                         {daysEvents.map(ev => (
-                            <div key={ev.id} className={`text-[10px] uppercase font-bold px-2 py-1 rounded-[4px] border truncate shadow-sm transition-all hover:scale-105 ${CATEGORIES[ev.type as keyof typeof CATEGORIES] || CATEGORIES['Other']}`}>
+                            <div key={ev.id} className={`text-[10px] uppercase font-bold px-2 py-1 rounded-[4px] border truncate shadow-sm transition-all hover:scale-105 ${CATEGORIES[ev.type] || CATEGORIES['Other']}`}>
                                 {ev.title}
                             </div>
                         ))}
@@ -154,73 +278,9 @@ export function Calendar() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#0A0A0A] text-white font-sans overflow-x-hidden selection:bg-[#FACC15] selection:text-black">
+        <div className="w-full text-white font-sans overflow-x-hidden selection:bg-[#FACC15] selection:text-black">
 
-            {/* --- HEADER (Identical to Dashboard) --- */}
-            <header className="fixed top-0 left-0 w-full z-50 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5 h-20 transition-all">
-                <div className="max-w-[1700px] mx-auto px-6 h-full flex items-center justify-between">
-
-                    {/* LEFT: Logo */}
-                    <div className="flex items-center gap-2 group cursor-pointer w-64" onClick={handleReset}>
-                        <div className="w-10 h-10 bg-[#FACC15] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.3)] group-hover:shadow-[0_0_40px_rgba(250,204,21,0.5)] transition-all duration-300">
-                            <ShieldCheck className="text-black w-6 h-6" />
-                        </div>
-                        <span className="text-2xl font-bold tracking-tight text-white">TaxAlly.</span>
-                    </div>
-
-                    {/* CENTER: Navigation Tabs */}
-                    {/* Note: In Dashboard, this was <nav>. Here we implement the buttons to Route. */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link to="/dashboard" className="relative text-sm font-medium tracking-wide text-white/70 hover:text-[#FACC15] transition-colors">
-                            Dashboard
-                        </Link>
-                        <button className="relative text-sm font-bold tracking-wide text-white cursor-default">
-                            Calendar
-                            <motion.div
-                                layoutId="nav-underline"
-                                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#FACC15] rounded-full shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                            />
-                        </button>
-                        <Link to="/copilot" className="relative text-sm font-medium tracking-wide text-white/70 hover:text-[#FACC15] transition-colors">
-                            Copilot
-                        </Link>
-                    </nav>
-
-                    {/* RIGHT: Status & User */}
-                    <div className="flex items-center gap-6 justify-end w-64">
-                        {/* Rules Live Badge */}
-                        <div className="hidden lg:flex items-center gap-2 bg-[#171717] px-3 py-1.5 rounded-full border border-white/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-white">2026 Rules Live</span>
-                        </div>
-
-                        {/* User Profile */}
-                        <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-xs text-[#9CA3AF] leading-tight font-medium">Signed in as</p>
-                                <p className="text-sm font-bold text-white leading-tight truncate max-w-[100px]">{userDisplayName.split(' ')[0]}</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-[#FACC15] flex items-center justify-center text-black font-extrabold text-lg shadow-[0_0_10px_rgba(250,204,21,0.2)] shrink-0">
-                                {userDisplayName.charAt(0)}
-                            </div>
-
-                            <button
-                                onClick={handleLogout}
-                                className="p-2 text-[#9CA3AF] hover:text-white transition-colors rounded-full hover:bg-white/5"
-                                title="Sign Out"
-                            >
-                                <LogOut size={20} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* --- MAIN CONTENT --- */}
-            <div className="max-w-[1700px] mx-auto p-6 pt-28 space-y-8">
+            <div className="space-y-8">
 
                 {/* Page Title & Actions */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -231,30 +291,55 @@ export function Calendar() {
                         <p className="text-[#94A3B8] mt-2 text-lg">Stay compliant with upcoming filing deadlines.</p>
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Search Bar */}
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                             <input
                                 type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search..."
-                                className="bg-[#171717] border border-white/5 rounded-full pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#FACC15]/50 focus:ring-1 focus:ring-[#FACC15]/50 transition-all w-64"
+                                className="bg-[#171717] border border-white/5 rounded-full pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-[#FACC15]/50 focus:ring-1 focus:ring-[#FACC15]/50 transition-all w-64"
                             />
                         </div>
+
+                        {/* Sync Portal Button */}
+                        <div className="relative group">
+                            <button
+                                onClick={handleSync}
+                                disabled={syncStatus !== 'idle'}
+                                className={`flex items-center gap-2 px-5 py-3 bg-[#171717] border rounded-full font-medium transition-all w-[180px] justify-center
+                                    ${syncStatus === 'success' ? 'border-emerald-500/50 text-emerald-400' : 'border-white/10 hover:border-[#FACC15]/50 hover:text-[#FACC15]/90 text-gray-300'}
+                                    ${syncStatus !== 'idle' ? 'opacity-90 cursor-not-allowed' : ''}
+                                `}
+                            >
+                                {syncStatus === 'idle' && <><RefreshCw size={18} /> Sync Portal</>}
+                                {syncStatus === 'connecting' && <><Shield size={18} className="animate-pulse text-blue-500" /> Connecting...</>}
+                                {syncStatus === 'authenticating' && <><Lock size={18} className="text-amber-500" /> Verifying...</>}
+                                {syncStatus === 'fetching' && <><Loader size={18} className="animate-spin text-[#FACC15]" /> Fetching...</>}
+                                {syncStatus === 'success' && <><Check size={18} /> Synced</>}
+                            </button>
+
+                            {/* Security Tooltip */}
+                            {syncStatus !== 'idle' && (
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap text-[10px] font-medium text-[#94A3B8] bg-black/80 px-2 py-1 rounded border border-white/5 backdrop-blur-sm">
+                                    <Lock size={8} className="inline mr-1" /> Secured via 256-bit Encryption
+                                </div>
+                            )}
+                        </div>
+
                         <button
-                            onClick={handleSync}
-                            className="flex items-center gap-2 px-5 py-3 bg-[#171717] border border-white/10 rounded-full hover:border-[#FACC15]/50 hover:text-[#FACC15]/90 text-gray-300 font-medium transition-all"
+                            onClick={() => setShowAddModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-[#FACC15] hover:bg-yellow-400 text-black rounded-full font-bold shadow-[0_0_20px_rgba(250,204,21,0.2)] transition-all active:scale-95"
                         >
-                            <RefreshCw size={18} className={isSyncing ? "animate-spin text-[#FACC15]" : ""} />
-                            <span>{isSyncing ? "Syncing..." : "Sync Portal"}</span>
-                        </button>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-[#FACC15] hover:bg-yellow-400 text-black rounded-full font-bold shadow-[0_0_20px_rgba(250,204,21,0.2)] transition-all active:scale-95">
-                            <CalendarIcon size={18} /> Add Event
+                            <Plus size={18} /> Add Event
                         </button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-                    {/* --- SIDEBAR --- */}
+                    {/* --- SIDEBAR (Mini Calendar) --- */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -282,27 +367,32 @@ export function Calendar() {
                             </div>
                         </div>
 
-                        {/* Upcoming Feed (Dashboard Style) */}
+                        {/* Upcoming Feed (Filtered by Search) */}
                         <div className="bg-[#171717] p-6 rounded-[2rem] border border-white/5 flex-1 flex flex-col relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                                 <Bell size={80} />
                             </div>
                             <h3 className="font-bold text-white mb-6 flex items-center gap-2 z-10">
-                                <Bell size={18} className="text-[#FACC15]" /> Upcoming
+                                <Bell size={18} className="text-[#FACC15]" />
+                                {searchQuery ? 'Search Results' : 'Upcoming'}
                             </h3>
                             <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar max-h-[500px] z-10">
-                                {EVENTS.map((ev) => (
-                                    <div key={ev.id} onClick={() => setSelectedEvent(ev)} className="group p-4 rounded-2xl bg-[#0A0A0A] border border-white/5 hover:border-[#FACC15]/30 hover:bg-[#FACC15]/5 transition-all cursor-pointer">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${CATEGORIES[ev.type as keyof typeof CATEGORIES]}`}>
-                                                {ev.type}
+                                {filteredEvents.length === 0 ? (
+                                    <p className="text-sm text-[#94A3B8] italic">No events found.</p>
+                                ) : (
+                                    filteredEvents.filter(e => new Date(e.date) >= new Date('2026-01-01')).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5).map((ev) => (
+                                        <div key={ev.id} onClick={() => setSelectedEvent(ev)} className="group p-4 rounded-2xl bg-[#0A0A0A] border border-white/5 hover:border-[#FACC15]/30 hover:bg-[#FACC15]/5 transition-all cursor-pointer">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${CATEGORIES[ev.type] || CATEGORIES.Other}`}>
+                                                    {ev.type}
+                                                </div>
+                                                <span className="text-xs font-medium text-[#94A3B8] border border-white/5 px-2 py-0.5 rounded-full bg-[#171717]">{ev.date.split('-')[2]} Jan</span>
                                             </div>
-                                            <span className="text-xs font-medium text-[#94A3B8] border border-white/5 px-2 py-0.5 rounded-full bg-[#171717]">{ev.date.split('-')[2]} Jan</span>
+                                            <h4 className="font-bold text-gray-200 group-hover:text-white transition-colors">{ev.title}</h4>
+                                            <p className="text-xs text-[#94A3B8] mt-1 line-clamp-1 group-hover:text-gray-400 transition-colors">{ev.description}</p>
                                         </div>
-                                        <h4 className="font-bold text-gray-200 group-hover:text-white transition-colors">{ev.title}</h4>
-                                        <p className="text-xs text-[#94A3B8] mt-1 line-clamp-1 group-hover:text-gray-400 transition-colors">{ev.description}</p>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </motion.div>
@@ -311,8 +401,14 @@ export function Calendar() {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="lg:col-span-3 bg-[#171717] rounded-[2rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden h-[calc(100vh-250px)]"
+                        className="lg:col-span-3 bg-[#171717] rounded-[2rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden h-[calc(100vh-250px)] relative"
                     >
+                        {/* Shimmer Overlay during Sync */}
+                        {syncStatus === 'fetching' && (
+                            <div className="absolute inset-0 z-50 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-100%] animate-shimmer" />
+                        )}
+
+                        {/* Calendar Header inside Grid */}
                         <div className="p-8 border-b border-white/5 flex items-center justify-between bg-[#171717] z-10">
                             <div className="flex items-center gap-6">
                                 <h2 className="text-3xl font-bold text-white tracking-tight min-w-[200px]">
@@ -324,16 +420,23 @@ export function Calendar() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-5 text-sm font-medium text-[#94A3B8]">
+                                {lastSynced && (
+                                    <span className="text-xs text-emerald-400 flex items-center gap-1">
+                                        <RefreshCw size={10} /> Synced: {lastSynced}
+                                    </span>
+                                )}
                                 <div className="flex items-center gap-2 bg-[#0A0A0A] px-3 py-1.5 rounded-full border border-white/5"><span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> GST</div>
                                 <div className="flex items-center gap-2 bg-[#0A0A0A] px-3 py-1.5 rounded-full border border-white/5"><span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span> TDS</div>
                                 <div className="flex items-center gap-2 bg-[#0A0A0A] px-3 py-1.5 rounded-full border border-white/5"><span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span> TCS</div>
                             </div>
                         </div>
 
+                        {/* Days Header */}
                         <div className="grid grid-cols-7 border-b border-white/5 bg-[#0A0A0A] text-[#94A3B8] text-sm font-bold uppercase tracking-widest text-center py-5">
                             <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                         </div>
 
+                        {/* Days Grid */}
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentDate.toISOString()}
@@ -350,7 +453,223 @@ export function Calendar() {
 
                 </div>
 
-                {/* --- COPILOT INSIGHT TOAST (Dashboard Style) --- */}
+                {/* --- ADD EVENT MODAL --- */}
+                <AnimatePresence>
+                    {showAddModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowAddModal(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            />
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                className="relative w-full max-w-2xl bg-[#171717] rounded-[2rem] border border-[#FACC15] shadow-2xl p-8 overflow-hidden"
+                            >
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                            <CalendarIcon className="text-[#FACC15]" /> Add New Event
+                                        </h2>
+                                        <p className="text-[#94A3B8] text-sm mt-1">Schedule a compliance task or payment.</p>
+                                    </div>
+                                    <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                {/* Quick Presets */}
+                                <div className="flex gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar">
+                                    {['Monthly GST', 'Quarterly Tax', 'Rent'].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            onClick={() => applyQuickPreset(preset)}
+                                            className="whitespace-nowrap px-4 py-2 bg-[#0A0A0A] border border-white/10 rounded-xl text-xs font-bold text-[#94A3B8] hover:text-white hover:border-[#FACC15]/50 transition-all flex items-center gap-2"
+                                        >
+                                            <Bot size={14} className="text-[#FACC15]" /> {preset}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Form Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    {/* Title */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Event Title</label>
+                                        <div className="relative">
+                                            <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                name="title"
+                                                value={newEvent.title}
+                                                onChange={handleAddEventChange}
+                                                placeholder="e.g. GST Filing for January"
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#FACC15] transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Category */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2 flex items-center justify-between">
+                                            Category
+                                            <span className="flex items-center gap-1 text-[10px] text-[#FACC15] lowercase font-normal"><Bot size={10} /> ai suggestions on</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] w-5 h-5" />
+                                            <select
+                                                name="type"
+                                                value={newEvent.type}
+                                                onChange={handleAddEventChange}
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#FACC15] transition-all appearance-none"
+                                            >
+                                                {Object.keys(CATEGORIES).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Date */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Date</label>
+                                        <div className="relative">
+                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] w-5 h-5" />
+                                            <input
+                                                type="date"
+                                                name="date"
+                                                value={newEvent.date}
+                                                onChange={handleAddEventChange}
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#FACC15] transition-all scheme-dark"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Amount */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Amount (Optional)</label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] w-5 h-5" />
+                                            <input
+                                                type="number"
+                                                name="amount"
+                                                value={newEvent.amount}
+                                                onChange={handleAddEventChange}
+                                                placeholder="0.00"
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#FACC15] transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Priority */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Priority</label>
+                                        <div className="flex gap-2">
+                                            {['High', 'Medium', 'Low'].map(p => (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setNewEvent({ ...newEvent, priority: p })}
+                                                    className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${newEvent.priority === p ? 'bg-[#FACC15] text-black border-[#FACC15]' : 'bg-[#0A0A0A] text-[#94A3B8] border-white/10 hover:border-white/30'}`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Notes</label>
+                                        <div className="relative">
+                                            <FileText className="absolute left-4 top-4 text-[#94A3B8] w-5 h-5" />
+                                            <textarea
+                                                name="description"
+                                                value={newEvent.description}
+                                                onChange={handleAddEventChange}
+                                                rows={3}
+                                                placeholder="Add details..."
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#FACC15] transition-all resize-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Toggle */}
+                                    <div className="col-span-2 flex items-center gap-3 p-4 bg-[#0A0A0A] rounded-xl border border-white/5">
+                                        <div
+                                            onClick={() => setNewEvent({ ...newEvent, reminder: !newEvent.reminder })}
+                                            className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${newEvent.reminder ? 'bg-[#FACC15]' : 'bg-[#333]'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${newEvent.reminder ? 'left-7' : 'left-1'}`} />
+                                        </div>
+                                        <span className="text-sm font-medium text-white">Notify me via Copilot 24 hours before</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex gap-4">
+                                    <button
+                                        onClick={() => setShowAddModal(false)}
+                                        className="flex-1 py-4 bg-transparent border border-white/10 rounded-xl text-white font-bold hover:bg-white/5 transition-all outline-none"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveEvent}
+                                        className="flex-1 py-4 bg-[#FACC15] rounded-xl text-black font-bold hover:bg-yellow-400 transition-all shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+                                    >
+                                        Create Event
+                                    </button>
+                                </div>
+
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- SUCCESS TOAST (Strategy 2) --- */}
+                <AnimatePresence>
+                    {showSuccessToast && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] bg-[#171717] border border-[#10B981] px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.2)] flex items-center gap-4"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                                <CheckCircle2 className="text-white w-5 h-5" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-white leading-tight">Success!</h4>
+                                <p className="text-xs text-[#94A3B8]">Event successfully added to your calendar.</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- SYNC TOAST (Strategy 3) --- */}
+                <AnimatePresence>
+                    {syncToastMessage && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] bg-[#171717] border border-blue-500/30 px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.15)] flex items-center gap-4"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                <RefreshCw className="text-blue-400 w-5 h-5" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-white leading-tight">Sync Complete</h4>
+                                <p className="text-xs text-[#94A3B8]">1 New Deadline synchronized from GST Portal.</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- COPILOT INSIGHT TOAST (Existing) --- */}
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -397,7 +716,7 @@ export function Calendar() {
                             </button>
 
                             <div className="mt-12 mb-8">
-                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide mb-6 border ${CATEGORIES[selectedEvent.type as keyof typeof CATEGORIES]}`}>
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide mb-6 border ${CATEGORIES[selectedEvent.type] || CATEGORIES['Other']}`}>
                                     <AlertCircle size={14} /> {selectedEvent.type}
                                 </div>
                                 <h2 className="text-3xl font-bold text-white mb-3">{selectedEvent.title}</h2>
@@ -420,6 +739,11 @@ export function Calendar() {
                                 </div>
                             </div>
 
+                            <div className="mb-8">
+                                <h4 className="text-sm font-bold text-white mb-2">Notes</h4>
+                                <p className="text-sm text-[#94A3B8] leading-relaxed">{selectedEvent.description}</p>
+                            </div>
+
                             <div className="space-y-4 mt-auto">
                                 <button className="w-full py-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-bold rounded-2xl shadow-[0_0_20px_rgba(250,204,21,0.2)] transition-all flex items-center justify-center gap-2 transform active:scale-95">
                                     <FileText size={20} /> File Now
@@ -438,8 +762,15 @@ export function Calendar() {
             .custom-scrollbar::-webkit-scrollbar-track { background: #0A0A0A; }
             .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
             .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
+            
+            @keyframes shimmer {
+                0% { transform: translateX(-100%) skewX(-12deg); }
+                100% { transform: translateX(200%) skewX(-12deg); }
+            }
+            .animate-shimmer {
+                animation: shimmer 1.5s infinite;
+            }
         `}</style>
-
         </div>
     );
 }

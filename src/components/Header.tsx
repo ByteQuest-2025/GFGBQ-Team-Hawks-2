@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,15 +14,23 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLogout }) => {
     const { profile } = useStore();
     const navigate = useNavigate();
+    const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const userDisplayName = profile?.ownerName || 'User';
     const userPhotoURL = profile?.photoURL;
 
     const navLinks = [
-        { name: 'Dashboard', id: 'Overview', path: '/dashboard', route: '/dashboard' },
-        { name: 'Calendar', id: 'Calendar', path: '/calendar', route: '/calendar' }
+        { name: 'Dashboard', id: 'Overview', path: '/dashboard' },
+        { name: 'Calendar', id: 'Calendar', path: '/calendar' },
+        { name: 'Copilot', id: 'Copilot', path: '/copilot' },
+        { name: 'Invoices', id: 'Invoices', path: '/invoices' },
+        { name: 'Reports', id: 'Reports', path: '/reports' }
     ];
+
+    // Determine active tab from location
+    const currentPath = location.pathname;
+    const activeTabId = navLinks.find(link => currentPath.toLowerCase().includes(link.path.toLowerCase()))?.id || 'Overview';
 
     return (
         <header className="fixed top-0 left-0 w-full z-50 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5 h-20 transition-all">
@@ -41,17 +49,14 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLogou
                     {navLinks.map(link => (
                         <button
                             key={link.name}
-                            onClick={() => {
-                                setActiveTab(link.id);
-                                navigate(link.route);
-                            }}
-                            className={`relative text-sm font-medium transition-all duration-200 tracking-wide hover:opacity-100 ${activeTab === link.id
+                            onClick={() => navigate(link.path)}
+                            className={`relative text-sm font-medium transition-all duration-200 tracking-wide hover:opacity-100 ${activeTabId === link.id
                                 ? 'text-white opacity-100 font-semibold'
                                 : 'text-white/70 hover:text-[#FACC15]'
                                 }`}
                         >
                             {link.name}
-                            {activeTab === link.id && (
+                            {activeTabId === link.id && (
                                 <motion.div
                                     layoutId="nav-underline"
                                     className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#FACC15] rounded-full shadow-[0_0_10px_rgba(250,204,21,0.5)]"
@@ -99,44 +104,41 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLogou
                         <button className="md:hidden text-white ml-2" onClick={() => setMobileMenuOpen(true)}>
                             <Menu className="w-6 h-6" />
                         </button>
-                    </div >
-                </div >
-            </div >
+                    </div>
+                </div>
+            </div>
 
             {/* MOBILE MENU */}
             <AnimatePresence>
-                {
-                    mobileMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg flex flex-col p-6"
-                        >
-                            <div className="flex justify-end mb-8">
-                                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-white">
-                                    <X className="w-8 h-8" />
+                {mobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg flex flex-col p-6"
+                    >
+                        <div className="flex justify-end mb-8">
+                            <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-white">
+                                <X className="w-8 h-8" />
+                            </button>
+                        </div>
+                        <nav className="flex flex-col gap-8 text-center mt-10">
+                            {navLinks.map((link) => (
+                                <button
+                                    key={link.id}
+                                    onClick={() => {
+                                        navigate(link.path);
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
+                                >
+                                    {link.name}
                                 </button>
-                            </div>
-                            <nav className="flex flex-col gap-8 text-center mt-10">
-                                {navLinks.map((link) => (
-                                    <button
-                                        key={link.id}
-                                        onClick={() => {
-                                            setActiveTab(link.id);
-                                            navigate(link.route);
-                                            setMobileMenuOpen(false);
-                                        }}
-                                        className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
-                                    >
-                                        {link.name}
-                                    </button>
-                                ))}
-                            </nav>
-                        </motion.div>
-                    )
-                }
-            </AnimatePresence >
-        </header >
+                            ))}
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </header>
     );
 };

@@ -16,6 +16,7 @@ import documentRoutes from './routes/documentRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import integrationRoutes from './routes/integrationRoutes';
 import userRoutes from './routes/userRoutes';
+import reportsRoutes from './routes/reportsRoutes';
 
 // Middleware
 app.use(cors());
@@ -30,6 +31,7 @@ app.use('/api/v1/tools', toolsRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // Basic Health Check
 app.get('/health', (req, res) => {

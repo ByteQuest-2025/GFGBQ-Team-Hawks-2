@@ -11,19 +11,31 @@ dotenv.config();
 
 try {
     if (!admin.apps.length) {
-        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        // PRIORITY 1: Explicit ENV Vars (Best for Vercel/Render/Cloud Run)
+        if (process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_CLIENT_EMAIL) {
+            console.log('🔐 Initializing Firebase with ENV vars...');
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.GOOGLE_PROJECT_ID || 'bytequest-hackathon',
+                    clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
+                    privateKey: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // FIX: Handle escaped newlines
+                })
+            });
+            console.log('✅ Firebase Admin initialized (ENV Strategy)');
+        }
+        // PRIORITY 2: Remote/Local File Path
+        else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
             // Production-grade: Load Service Account from file path
             const serviceAccountPath = path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT);
             const serviceAccount = require(serviceAccountPath);
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
-            console.log('✅ Firebase Admin initialized with Service Account');
-        } else {
-            // Fallback for when specific path isn't set -> try default google strategy
-            // But warn that specific SA is best for "Root Fix"
-            console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT not set in .env');
-            console.warn('   Attempting to use Default Application Credentials...');
+            console.log('✅ Firebase Admin initialized (File Strategy)');
+        }
+        // FALLBACK: Default Google Credentials (GCP Internal)
+        else {
+            console.warn('⚠️ No explicit credentials found. Using Application Default Credentials.');
             admin.initializeApp({
                 credential: admin.credential.applicationDefault()
             });
@@ -31,9 +43,6 @@ try {
     }
 } catch (error) {
     console.error('❌ Firebase Admin Initialization Failed:', error);
-    console.error('   To fix this from root:');
-    console.error('   1. Get service-account.json from Firebase Console');
-    console.error('   2. Set FIREBASE_SERVICE_ACCOUNT=path/to/key.json in server/.env');
 }
 
 export const db = admin.firestore();
