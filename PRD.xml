@@ -1,0 +1,48 @@
+<PRD name="RealTime-Tax-Compliance-Copilot" version="1.0">
+
+  <VISION>
+    Build a real-time, intelligent tax & compliance copilot that removes fear, reduces dependency on intermediaries,
+    and enables micro-businesses to become formally compliant with confidence.
+  </VISION>
+
+<TARGET_USERS> <USER type="MicroTrader" /> <USER type="Freelancer" /> <USER type="GigWorker" /> <USER type="SmallRetailer" /> <USER type="FirstTimeFormalBusiness" />
+</TARGET_USERS>
+
+  <PROBLEMS>
+    <PROBLEM id="P1">Fear of penalties and legal consequences</PROBLEM>
+    <PROBLEM id="P2">Complex and frequently changing tax laws</PROBLEM>
+    <PROBLEM id="P3">Manual, time-consuming paperwork</PROBLEM>
+    <PROBLEM id="P4">Heavy dependence on accountants/intermediaries</PROBLEM>
+    <PROBLEM id="P5">Poor awareness of timelines and obligations</PROBLEM>
+  </PROBLEMS>
+
+  <SOLUTION>
+    <DESCRIPTION>
+      A proactive, real-time compliance copilot that understands the user’s business context,
+      tracks obligations automatically, explains actions in simple language,
+      and prevents non-compliance before it occurs.
+    </DESCRIPTION>
+  </SOLUTION>
+
+<CORE_FEATURES> <FEATURE id="F1">Business Profiling (nature, turnover, geography, tax regime)</FEATURE> <FEATURE id="F2">Real-Time Compliance Calendar (GST, IT, TDS, local laws)</FEATURE> <FEATURE id="F3">Plain-English Tax Explanations (zero jargon mode)</FEATURE> <FEATURE id="F4">Automated Alerts & Risk Warnings (pre-deadline)</FEATURE> <FEATURE id="F5">Smart Document Checklist & Validation</FEATURE> <FEATURE id="F6">Conversational Copilot (chat-based guidance)</FEATURE> <FEATURE id="F7">Audit-Ready Compliance Timeline (immutable log)</FEATURE>
+</CORE_FEATURES>
+
+<NON_GOALS> <ITEM>Replacing professional accountants for complex litigation</ITEM> <ITEM>Manual form filling without automation</ITEM> <ITEM>Generic advice without business context</ITEM>
+</NON_GOALS>
+
+<SYSTEM_DESIGN_PRINCIPLES> <PRINCIPLE>Context-first, not rule-first</PRINCIPLE> <PRINCIPLE>Prevention over penalty recovery</PRINCIPLE> <PRINCIPLE>Explain before instruct</PRINCIPLE> <PRINCIPLE>Automation over reminders</PRINCIPLE> <PRINCIPLE>Compliance as confidence, not fear</PRINCIPLE>
+</SYSTEM_DESIGN_PRINCIPLES>
+
+<DATA_SOURCES> <SOURCE>Transaction data (manual + integrations)</SOURCE> <SOURCE>Government compliance calendars</SOURCE> <SOURCE>Tax law change feeds</SOURCE> <SOURCE>User behavior & missed-deadline signals</SOURCE>
+</DATA_SOURCES>
+
+<SUCCESS_METRICS> <METRIC>Reduction in missed filings</METRIC> <METRIC>Increase in formal registrations</METRIC> <METRIC>User-reported fear reduction</METRIC> <METRIC>Time saved vs manual compliance</METRIC>
+</SUCCESS_METRICS>
+
+<THINKING_RULES name="VibeCoding-Ruleset"> <RULE id="R1">Always fix root causes, never apply surface-level patches</RULE> <RULE id="R2">If a user is confused, the system failed—not the user</RULE> <RULE id="R3">Prefer structural simplification over added instructions</RULE> <RULE id="R4">Assume low financial literacy unless proven otherwise</RULE> <RULE id="R5">Every rule must be explainable in one sentence</RULE> <RULE id="R6">Prevent compliance failure before it happens</RULE> <RULE id="R7">Design for fear reduction as a first-class objective</RULE> <RULE id="R8">No silent assumptions—surface all implications</RULE> <RULE id="R9">Optimise for trust, not just correctness</RULE> <RULE id="R10">Systems should degrade gracefully under missing data</RULE>
+</THINKING_RULES>
+
+<FUTURE_EXTENSIONS> <ITEM>Credit eligibility signals</ITEM> <ITEM>Government scheme recommendations</ITEM> <ITEM>Cross-country compliance modules</ITEM>
+</FUTURE_EXTENSIONS>
+
+</PRD>
