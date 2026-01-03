@@ -30,22 +30,22 @@ export const api = {
     },
 
     /**
-     * OBLIGATIONS - Get user compliance obligations
+     * COMPLIANCE - Get user obligations
      */
     async getObligations(uid: string) {
-        const response = await fetch(`${API_URL}/obligations?uid=${uid}`);
+        const response = await fetch(`${API_URL}/obligations/${uid}`);
         if (!response.ok) throw new Error('Failed to fetch obligations');
         return response.json();
     },
 
     /**
-     * OBLIGATIONS - Refresh obligations based on profile
+     * COMPLIANCE - Refresh obligations based on profile
      */
     async refreshObligations(uid: string, profile: any) {
-        const response = await fetch(`${API_URL}/obligations/refresh`, {
+        const response = await fetch(`${API_URL}/obligations/${uid}/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid, profile })
+            body: JSON.stringify(profile)
         });
         if (!response.ok) throw new Error('Failed to refresh obligations');
         return response.json();
@@ -78,52 +78,39 @@ export const api = {
     },
 
     /**
-     * TOOLS - GST Registration Check
+     * TOOLS - Check GST Requirement
      */
-    async checkGSTRequirement(turnover: number, isInterstate: boolean) {
+    async checkGSTRequirement(turnover: number, state: string) {
         const response = await fetch(`${API_URL}/tools/gst-check`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ turnover, isInterstate })
+            body: JSON.stringify({ turnover, state })
         });
         if (!response.ok) throw new Error('Failed to check GST requirement');
         return response.json();
     },
 
     /**
-     * TOOLS - TDS Monitor (Section 194O)
-     */
-    async checkTDS(monthlySales: number) {
-        const response = await fetch(`${API_URL}/tools/tds-check`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monthlySales })
-        });
-        if (!response.ok) throw new Error('Failed to check TDS');
-        return response.json();
-    },
-
-    /**
      * DOCUMENTS - Analyze document with Gemini Vision
      */
-    async analyzeDocument(imageBase64: string) {
+    async analyzeDocument(base64Image: string) {
         const response = await fetch(`${API_URL}/documents/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64 })
+            body: JSON.stringify({ imageBase64: base64Image })
         });
         if (!response.ok) throw new Error('Failed to analyze document');
         return response.json();
     },
 
     /**
-     * INTEGRATIONS - Analyze Google Sheet Expenses with AI
+     * INTEGRATIONS - Analyze Expenses from Google Sheet
      */
-    async analyzeExpensesFromSheet(spreadsheetId?: string) {
+    async analyzeExpensesFromSheet() {
         const response = await fetch(`${API_URL}/integrations/analyze-sheet`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ spreadsheetId })
+            body: JSON.stringify({ useMockData: true })
         });
         if (!response.ok) throw new Error('Failed to analyze expenses');
         return response.json();
@@ -139,6 +126,25 @@ export const api = {
             body: JSON.stringify({ email, deadlineName, dueDate })
         });
         if (!response.ok) throw new Error('Failed to send alert');
+        return response.json();
+    },
+
+    /**
+     * USERS - Profile Management
+     */
+    async getUserProfile(userId: string) {
+        const response = await fetch(`${API_URL}/users/${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch user profile');
+        return response.json();
+    },
+
+    async updateUserProfile(userId: string, data: any) {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Failed to update user profile');
         return response.json();
     }
 };
