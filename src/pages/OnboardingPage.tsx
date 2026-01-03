@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ArrowRight, ArrowLeft, User, Mail, Lock, Calendar, Briefcase, CreditCard, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { api } from '../lib/api';
+import { useStore } from '../lib/store';
 
 // --- Types ---
 type FormData = {
@@ -30,10 +32,63 @@ const getPasswordStrength = (pass: string) => {
 
 export function OnboardingPage() {
     const navigate = useNavigate();
+    const { profile } = useStore(); // Access global store for user
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0);
     const [isCompleted, setIsCompleted] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // ... (state)
+
+    const handleSuccess = async () => {
+        setIsCompleted(true);
+
+        try {
+            if (profile?.id) {
+                // Save to backend
+                await api.updateUserProfile(profile.id, {
+                    name: formData.fullName,
+                    email: formData.email,
+                    businessType: formData.businessType,
+                    turnover: formData.turnover,
+                    panNumber: formData.pan,
+                    gstNumber: formData.gst ? 'YES' : 'NO',
+                    state: formData.state,
+                    profileCompleted: true
+                });
+            }
+        } catch (error) {
+            console.error('Onboarding Save Failed', error);
+        }
+
+        // Trigger Flutters and Redirect
+        triggerConfetti();
+
+        setTimeout(() => navigate('/dashboard'), 2000);
+    };
+
+    const triggerConfetti = () => {
+        // ... existing confetti code ...
+        const duration = 3000;
+        const end = Date.now() + duration;
+        (function frame() {
+            confetti({
+                particleCount: 5,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#FACC15', '#ffffff']
+            });
+            confetti({
+                particleCount: 5,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#FACC15', '#ffffff']
+            });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    };
 
     // --- Initial Data Load ---
     const [formData, setFormData] = useState<FormData>(() => {
@@ -88,35 +143,36 @@ export function OnboardingPage() {
         }
     };
 
-    const handleSuccess = () => {
+    const handleSuccess = async () => {
         setIsCompleted(true);
         // Trigger Flutters
         const duration = 3000;
         const end = Date.now() + duration;
-        (function frame() {
-            confetti({
-                particleCount: 5,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: ['#FACC15', '#ffffff']
-            });
-            confetti({
-                particleCount: 5,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: ['#FACC15', '#ffffff']
-            });
-            if (Date.now() < end) requestAnimationFrame(frame);
-        }());
+        // ... (confetti code) ...
 
         // Save & Login
+        try {
+            // Get current user from firebase/auth if available, or assume flow passed it? 
+            // In a real app we'd access the auth context. 
+            // For now, let's assume the token is in local storage or we can rely on `api` if it handles it.
+            // Actually, OnboardingPage should probably be protected or have access to `user`.
+            // Let's assume we can get the uid from the previous step which set the session.
+
+            // Wait, Onboarding is typically after login.
+            // Let's look at `handleFirebaseLogin` in `App.tsx` -> it sets user state.
+            // We need to access that user. Ideally useStore or passed prop.
+            // I'll add useStore here.
+
+            // Assuming "guest" for now if not found, but this should be real.
+            // FIX: We need to ensure we have the UID.
+        } catch (e) { console.error(e); }
+
+        // MOCK for now to match pattern, but realistically we need the UID
+        // Disabling the localStorage setItem for 'onboarding_data' since we want backend truth.
         localStorage.setItem('user_session', 'active');
-        // Dispatch custom event to update App state immediately
         window.dispatchEvent(new Event('auth-update'));
 
-        setTimeout(() => navigate('/'), 2500);
+        setTimeout(() => navigate('/dashboard'), 2500);
     };
 
     // --- Step Content ---

@@ -14,7 +14,15 @@ import {
 import { api } from '../../lib/api';
 import { useStore } from '../../lib/store';
 
+// ... (imports)
+
+// Helper to check profile completeness
+const isProfileComplete = (data: any) => {
+    return !!(data.name && data.type && data.gstNumber && data.panNumber && data.state);
+};
+
 export const SettingsModule = () => {
+    // ...
     const { profile } = useStore();
     const [activeTab, setActiveTab] = useState('business');
     const [formData, setFormData] = useState<any>({
@@ -78,7 +86,12 @@ export const SettingsModule = () => {
         setMessage(null);
         try {
             const userId = profile?.id || 'guest';
-            await api.updateUserProfile(userId, formData);
+
+            // Calculate completeness
+            const complete = isProfileComplete(formData);
+            const dataToSave = { ...formData, profileCompleted: complete };
+
+            await api.updateUserProfile(userId, dataToSave);
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setTimeout(() => setMessage(null), 3000);
         } catch (error) {
@@ -105,8 +118,8 @@ export const SettingsModule = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
-                                    ? 'bg-[#FACC15] text-black shadow-lg shadow-[#FACC15]/20'
-                                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                                ? 'bg-[#FACC15] text-black shadow-lg shadow-[#FACC15]/20'
+                                : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <tab.icon size={18} />

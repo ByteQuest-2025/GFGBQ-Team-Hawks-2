@@ -82,13 +82,16 @@ function AppContent() {
   const handleFirebaseLogin = async () => {
     try {
       const user = await signInWithGoogle();
-      const backendProfile = await api.syncUser(user);
-      handleLoginSuccess(backendProfile);
-      // Optional: Redirect based on onboarding status
-      if (backendProfile.isNewUser) {
-        navigate('/onboard'); // If backend flags new user
-      } else {
+      const backendResponse = await api.syncUser(user);
+
+      // Update local state
+      handleLoginSuccess(backendResponse.user || { ...backendResponse, id: backendResponse.uid });
+
+      // Redirect Logic
+      if (backendResponse.profileCompleted) {
         navigate('/dashboard');
+      } else {
+        navigate('/onboard');
       }
     } catch (error) {
       console.error("Firebase Login Failed", error);
