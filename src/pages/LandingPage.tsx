@@ -24,7 +24,7 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onSignUpClick, on
         }
     };
 
-    const userName = user?.fullName?.split(' ')[0] || 'User';
+    const userName = user?.fullName?.split(' ')[0] || user?.ownerName?.split(' ')[0] || 'User';
 
     return (
         <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden font-sans">
@@ -32,19 +32,29 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onSignUpClick, on
             {/* NAVIGATION */}
             <nav className="fixed w-full z-50 top-0 left-0 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <button onClick={onResetDemo} className="flex items-center gap-2 group cursor-pointer z-50">
+                    <button onClick={onResetDemo} className="flex items-center gap-2 group cursor-pointer z-50 w-64">
                         <div className="w-10 h-10 bg-[#FACC15] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.3)] group-hover:shadow-[0_0_40px_rgba(250,204,21,0.5)] transition-all duration-300">
                             <ShieldCheck className="text-black w-6 h-6" />
                         </div>
-                        <span className="text-2xl font-bold tracking-tight">TaxAlly</span>
+                        <span className="text-2xl font-bold tracking-tight text-white">TaxAlly</span>
                     </button>
 
                     <div className="hidden md:flex items-center gap-8">
-                        <a href="#" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium">Compliance AI</a>
-                        <a href="#" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium">Tax Health</a>
+                        {isLoggedIn ? (
+                            <>
+                                <Link to="/dashboard" className="text-white font-medium hover:text-[#FACC15] transition-colors text-sm tracking-wide">Dashboard</Link>
+                                <Link to="/calendar" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium tracking-wide">Calendar</Link>
+                                <Link to="/copilot" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium tracking-wide">Copilot</Link>
+                            </>
+                        ) : (
+                            <>
+                                <a href="#" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium tracking-wide">Compliance AI</a>
+                                <a href="#" className="text-[#94A3B8] hover:text-white transition-colors text-sm font-medium tracking-wide">Tax Health</a>
+                            </>
+                        )}
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 justify-end w-64">
                         <div className="hidden md:flex items-center gap-2 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>

@@ -97,7 +97,7 @@ function AppContent() {
           <Route path="/onboard" element={<OnboardingPage />} />
 
           {/* Protected Routes */}
-          <Route path="/dashboard" element={isLoggedIn ? <><Navbar /><div className="page"><Dashboard /></div></> : <Navigate to="/" />} />
+          <Route path="/dashboard" element={isLoggedIn ? <div className="page"><Dashboard user={user} /></div> : <Navigate to="/" />} />
           <Route path="/calendar" element={isLoggedIn ? <><Navbar /><div className="page"><Calendar /></div></> : <Navigate to="/" />} />
           <Route path="/copilot" element={isLoggedIn ? <><Navbar /><div className="page"><Copilot /></div></> : <Navigate to="/" />} />
 
