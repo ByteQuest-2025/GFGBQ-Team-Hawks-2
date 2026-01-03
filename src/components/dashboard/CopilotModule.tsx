@@ -1,19 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Send, 
-    Bot, 
-    Sparkles, 
+import {
+    Send,
+    Bot,
+    Sparkles,
     History,
     ChevronRight,
     Lightbulb
 } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useStore } from '../../lib/store';
 
 export const CopilotModule = () => {
+    const { profile } = useStore();
     const [messages, setMessages] = useState([
         { id: 1, role: 'assistant', content: "Hello! I'm TaxAlly Copilot. I can help you with tax strategies, deduction rules, or financial planning. How can I assist you today?" }
     ]);
     const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -24,21 +28,37 @@ export const CopilotModule = () => {
         scrollToBottom();
     }, [messages]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!input.trim()) return;
-        
+
         const newMsg = { id: Date.now(), role: 'user', content: input };
         setMessages([...messages, newMsg]);
         setInput('');
+        setIsLoading(true);
 
-        // Mock AI response
-        setTimeout(() => {
+        try {
+            // Call real backend Gemini API
+            const response = await api.chatWithCopilot(
+                input,
+                profile?.id || 'guest',
+                messages
+            );
+
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: "I've analyzed your request. Based on current Section 44ADA rules, you can claim up to 50% of your gross receipts as expenses without maintaining detailed books. Would you like me to calculate your potential savings?"
+                content: response.reply
             }]);
-        }, 1500);
+        } catch (error) {
+            console.error('Copilot error:', error);
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'assistant',
+                content: "I'm having trouble connecting right now. Please try again in a moment!"
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const suggestedActions = [
@@ -49,7 +69,7 @@ export const CopilotModule = () => {
     ];
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
@@ -61,7 +81,7 @@ export const CopilotModule = () => {
                     <History size={20} />
                     <h3 className="font-bold">Session History</h3>
                 </div>
-                
+
                 <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {['GST Savings Strategy', 'Depreciation Audit', 'FY25 Planning', 'Invoice Verification'].map((item, i) => (
                         <button key={i} className="w-full text-left p-3 rounded-xl hover:bg-white/5 text-[#9CA3AF] hover:text-white transition-colors group flex items-center justify-between">
@@ -70,7 +90,7 @@ export const CopilotModule = () => {
                         </button>
                     ))}
                 </div>
-                
+
                 <div className="pt-4 border-t border-white/5">
                     <button className="w-full bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl text-sm font-bold transition-colors">
                         + New Chat
@@ -96,17 +116,16 @@ export const CopilotModule = () => {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                     {messages.map((msg) => (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            key={msg.id} 
+                            key={msg.id}
                             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                            <div className={`max-w-[80%] p-4 rounded-2xl leading-relaxed ${
-                                msg.role === 'user' 
-                                ? 'bg-[#FACC15] text-black font-medium rounded-tr-none' 
-                                : 'bg-[#262626] text-white border border-white/5 rounded-tl-none'
-                            }`}>
+                            <div className={`max-w-[80%] p-4 rounded-2xl leading-relaxed ${msg.role === 'user'
+                                    ? 'bg-[#FACC15] text-black font-medium rounded-tr-none'
+                                    : 'bg-[#262626] text-white border border-white/5 rounded-tl-none'
+                                }`}>
                                 {msg.role === 'assistant' && (
                                     <div className="flex items-center gap-2 mb-2 text-[#FACC15] text-xs font-bold uppercase tracking-wide">
                                         <Sparkles size={12} /> AI Strategy
@@ -125,8 +144,8 @@ export const CopilotModule = () => {
                     {messages.length < 3 && (
                         <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
                             {suggestedActions.map((action, i) => (
-                                <button 
-                                    key={i} 
+                                <button
+                                    key={i}
                                     onClick={() => setInput(action)}
                                     className="whitespace-nowrap px-4 py-2 bg-white/5 hover:bg-[#FACC15]/20 hover:text-[#FACC15] border border-white/10 rounded-full text-xs font-medium text-[#9CA3AF] transition-all"
                                 >
@@ -147,7 +166,7 @@ export const CopilotModule = () => {
                                 placeholder="Ask about tax savings, invoices, or audit risks..."
                                 className="w-full bg-transparent p-4 text-white focus:outline-none placeholder:text-[#525252]"
                             />
-                            <button 
+                            <button
                                 onClick={handleSend}
                                 className="p-2 mr-2 bg-[#FACC15] hover:bg-[#EAB308] rounded-lg text-black transition-colors"
                             >

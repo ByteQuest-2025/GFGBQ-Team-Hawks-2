@@ -6,9 +6,6 @@ import { LandingPage } from './pages/LandingPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Calendar } from './pages/Calendar';
-import { Copilot } from './pages/Copilot';
-import { Invoices } from './pages/Invoices';
-import { Reports } from './pages/Reports';
 import { SignInModal } from './components/SignInModal';
 import { SidebarCopilot } from './components/SidebarCopilot';
 import { useStore } from './lib/store';
@@ -121,9 +118,6 @@ function AppContent() {
           {/* Protected Routes */}
           <Route path="/dashboard" element={isLoggedIn ? <div className="page"><Dashboard user={user} /></div> : <Navigate to="/" />} />
           <Route path="/calendar" element={isLoggedIn ? <Calendar /> : <Navigate to="/" />} />
-          <Route path="/copilot" element={isLoggedIn ? <><Navbar /><div className="page"><Copilot /></div></> : <Navigate to="/" />} />
-          <Route path="/invoices" element={isLoggedIn ? <div className="page"><Invoices /></div> : <Navigate to="/" />} />
-          <Route path="/reports" element={isLoggedIn ? <div className="page"><Reports /></div> : <Navigate to="/" />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

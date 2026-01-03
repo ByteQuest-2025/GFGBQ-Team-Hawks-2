@@ -16,10 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
 
     const navLinks = [
         { name: 'Dashboard', id: 'Overview', path: '/dashboard', route: '/dashboard' },
-        { name: 'Calendar', id: 'Calendar', path: '/calendar', route: '/calendar' },
-        { name: 'Copilot', id: 'Copilot', path: '/copilot', route: '/copilot' },
-        { name: 'Invoices', id: 'Invoices', path: '/invoices', route: '/invoices' },
-        { name: 'Reports', id: 'Reports', path: '/reports', route: '/reports' }
+        { name: 'Calendar', id: 'Calendar', path: '/calendar', route: '/calendar' }
     ];
 
     return (
