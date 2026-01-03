@@ -3,17 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useStore } from '../lib/store';
+
 interface HeaderProps {
-    userDisplayName: string;
-    userPhotoURL?: string;
     activeTab: string;
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userDisplayName, userPhotoURL, activeTab, setActiveTab, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onLogout }) => {
+    const { profile } = useStore();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const userDisplayName = profile?.ownerName || 'User';
+    const userPhotoURL = profile?.photoURL;
 
     const navLinks = [
         { name: 'Dashboard', id: 'Overview', path: '/dashboard', route: '/dashboard' },

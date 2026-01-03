@@ -13,6 +13,8 @@ export interface BusinessProfile {
   gstNumber?: string;
   panNumber: string;
   email: string;
+  businessName?: string;
+  address?: string;
   photoURL?: string;
   createdAt: Date;
 }

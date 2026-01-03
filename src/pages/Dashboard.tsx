@@ -87,9 +87,8 @@ export function Dashboard({ user }: DashboardProps) {
         <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-[#FACC15] selection:text-black overflow-x-hidden pt-20">
 
             {/* Shared Header Component */}
+            {/* Shared Header Component */}
             <Header
-                userDisplayName={userDisplayName}
-                userPhotoURL={user?.photoURL || profile?.photoURL}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={handleLogout}
