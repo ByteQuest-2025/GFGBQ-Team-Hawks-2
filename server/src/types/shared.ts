@@ -13,7 +13,6 @@ export interface BusinessProfile {
     hasGST: boolean;
     gstNumber?: string;
     panNumber: string;
-    panNumber: string;
     email: string;
     photoURL?: string;
     createdAt: Date;
