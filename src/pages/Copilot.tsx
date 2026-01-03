@@ -1,104 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
+import { api } from '../lib/api';
 import type { ChatMessage } from '../types';
-import './Copilot.css';
+import { Send, Bot, FileText, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { Header } from '../components/Header';
 
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// Mock AI responses (replace with Gemini API integration)
-function getMockResponse(question: string, context: { obligations: string[], deadlines: string[] }): string {
-    const q = question.toLowerCase();
-
-    if (q.includes('gst') || q.includes('gstr')) {
-        return `Great question! 📋 Based on your profile:
-
-**GST Filing:**
-${context.obligations.filter(o => o.includes('GST')).map(o => `• ${o}`).join('\n') || '• No GST obligations detected'}
-
-Don't worry - GST filing is simpler than it sounds! You basically report your sales and purchases, and pay the difference. The GST portal at gst.gov.in has a step-by-step wizard.
-
-Would you like me to explain any specific form in detail?`;
-    }
-
-    if (q.includes('income tax') || q.includes('itr') || q.includes('tax return')) {
-        return `Here's what you need to know about Income Tax! 💰
-
-**Your ITR Deadline:** July 31st each year
-
-For freelancers and small businesses, you'll likely use:
-• **ITR-4 (Sugam)** - If using presumptive taxation (simpler!)
-• **ITR-3** - If maintaining full books of accounts
-
-**Pro Tip:** Under Section 44AD, if your turnover is below ₹2 Cr, you can declare 8% of turnover as profit and avoid detailed bookkeeping!
-
-Need help choosing the right ITR form?`;
-    }
-
-    if (q.includes('deadline') || q.includes('due') || q.includes('when')) {
-        return `Here are your upcoming deadlines! ⏰
-
-${context.deadlines.slice(0, 5).map(d => `📅 ${d}`).join('\n')}
-
-I'd recommend setting calendar reminders at least a week before each deadline. Missing them can result in late fees and interest!
-
-Want me to explain any specific filing?`;
-    }
-
-    if (q.includes('penalty') || q.includes('late') || q.includes('miss')) {
-        return `Let's talk about penalties - but don't worry, awareness is the first step! 😊
-
-**Common Penalties:**
-• **Late GST Return:** ₹50/day (₹20 for nil returns) up to ₹5,000
-• **Late ITR Filing:** Up to ₹5,000 if filed after July 31
-• **Late Advance Tax:** Interest under Sections 234B & 234C
-
-**Good News:** As long as you file before the deadline, there's no penalty! That's why I'm here - to make sure you never miss one.
-
-Is there a specific deadline you're concerned about?`;
-    }
-
-    if (q.includes('hello') || q.includes('hi') || q.includes('hey')) {
-        return `Hello! 👋 I'm your Tax Compliance Copilot!
-
-I'm here to help you understand and manage your tax obligations without the stress. You can ask me about:
-
-• 📋 GST filing and requirements
-• 💰 Income tax returns and forms
-• ⏰ Upcoming deadlines
-• ⚠️ How to avoid penalties
-• 📊 TDS obligations
-
-What would you like to know?`;
-    }
-
-    // Default response
-    return `Thanks for your question! 🤔
-
-Based on your business profile, here's what I'd suggest:
-
-${context.obligations.slice(0, 3).map(o => `• ${o}`).join('\n')}
-
-Remember, compliance doesn't have to be scary - take it one step at a time!
-
-Could you be more specific about what you'd like help with? I can explain:
-• Any specific form or filing
-• Deadlines and due dates
-• Penalty avoidance
-• Step-by-step filing guides`;
-}
-
 export function Copilot() {
-    const { profile, obligations, deadlines, alerts } = useStore();
+    const { profile, obligations, deadlines } = useStore();
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: 'welcome',
             role: 'assistant',
-            content: `Hi ${profile?.ownerName?.split(' ')[0]}! 👋 I'm your Tax Compliance Copilot.
-
-I can see you have **${obligations.length} compliance obligations** and **${alerts.filter(a => a.level === 'critical' || a.level === 'warning').length} items needing attention**.
-
-How can I help you today? Ask me anything about GST, Income Tax, or your upcoming deadlines!`,
+            content: `Hello! 👋 I'm your Tax Compliance Copilot. I can help you with GST filing, Income Tax returns, upcoming deadlines, and any tax-related questions!`,
             timestamp: new Date()
         }
     ]);
@@ -106,9 +22,12 @@ How can I help you today? Ask me anything about GST, Income Tax, or your upcomin
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto scroll to bottom
-    useEffect(() => {
+    const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
     }, [messages]);
 
     const sendMessage = async () => {
@@ -125,24 +44,33 @@ How can I help you today? Ask me anything about GST, Income Tax, or your upcomin
         setInput('');
         setIsTyping(true);
 
-        // Simulate AI thinking
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        try {
+            // Call real backend Gemini API
+            const response = await api.chatWithCopilot(
+                input,
+                profile?.id || 'guest',
+                messages
+            );
 
-        // Get mock response (replace with actual Gemini API call)
-        const context = {
-            obligations: obligations.map(o => o.name),
-            deadlines: deadlines.map(d => `${d.obligationName} - ${d.dueDate.toLocaleDateString('en-IN')}`)
-        };
-        const response = getMockResponse(input, context);
-
-        const assistantMessage: ChatMessage = {
-            id: generateId(),
-            role: 'assistant',
-            content: response,
-            timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
+            const assistantMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: response.reply,
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+        } catch (error) {
+            console.error('Copilot chat error:', error);
+            const errorMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: "I'm having trouble connecting right now. Please try again in a moment!",
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -152,44 +80,80 @@ How can I help you today? Ask me anything about GST, Income Tax, or your upcomin
         }
     };
 
-    // Suggested questions
     const suggestions = [
         "What is GST and do I need it?",
         "When is my next deadline?",
-        "How do I file ITR-4?",
-        "What happens if I miss a deadline?"
+        "Explain Section 44AD for me",
+        "How to file ITR-4?"
     ];
 
+    const userDisplayName = profile?.ownerName || 'User';
+    const firstName = userDisplayName.split(' ')[0];
+
     return (
-        <div className="container">
-            <div className="copilot-page">
-                {/* Chat Container */}
-                <div className="chat-container">
-                    <div className="chat-messages">
+        <div className="min-h-screen bg-[#0A0A0A] text-white font-sans pt-20">
+            <Header userDisplayName={userDisplayName} activeTab="Copilot" setActiveTab={() => { }} onLogout={() => { }} />
+
+            <div className="max-w-7xl mx-auto px-6 py-8 h-[calc(100vh-120px)] flex gap-6">
+                {/* Main Chat Area */}
+                <div className="flex-1 flex flex-col bg-[#171717]/60 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden">
+                    {/* Chat Header */}
+                    <div className="p-6 border-b border-white/5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-[#FACC15]/10 rounded-2xl flex items-center justify-center text-[#FACC15]">
+                                <Bot className="w-7 h-7" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Tax Compliance Copilot</h2>
+                                <p className="text-sm text-[#94A3B8]">Powered by Gemini AI</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
                         {messages.map(message => (
-                            <div key={message.id} className={`message ${message.role}`}>
-                                <div className="message-avatar">
+                            <div
+                                key={message.id}
+                                className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+                            >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'assistant'
+                                        ? 'bg-[#FACC15]/10 text-[#FACC15]'
+                                        : 'bg-blue-500/10 text-blue-400'
+                                    }`}>
                                     {message.role === 'assistant' ? '🛡️' : '👤'}
                                 </div>
-                                <div className="message-content">
-                                    <div className="message-text" dangerouslySetInnerHTML={{
-                                        __html: message.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')
-                                    }} />
-                                    <span className="message-time">
+                                <div className={`flex-1 max-w-[70%] ${message.role === 'user' ? 'text-right' : ''}`}>
+                                    <div className={`inline-block p-4 rounded-2xl ${message.role === 'assistant'
+                                            ? 'bg-[#0A0A0A] border border-white/5'
+                                            : 'bg-[#FACC15] text-black'
+                                        }`}>
+                                        <div
+                                            className="text-sm leading-relaxed"
+                                            dangerouslySetInnerHTML={{
+                                                __html: message.content
+                                                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                    .replace(/\n/g, '<br/>')
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-[#94A3B8] mt-2">
                                         {message.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+                                    </p>
                                 </div>
                             </div>
                         ))}
 
                         {isTyping && (
-                            <div className="message assistant">
-                                <div className="message-avatar">🛡️</div>
-                                <div className="message-content">
-                                    <div className="typing-indicator">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
+                            <div className="flex gap-3">
+                                <div className="w-10 h-10 bg-[#FACC15]/10 rounded-full flex items-center justify-center text-[#FACC15]">
+                                    🛡️
+                                </div>
+                                <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-2xl">
+                                    <div className="flex gap-1">
+                                        <span className="w-2 h-2 bg-[#FACC15] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                        <span className="w-2 h-2 bg-[#FACC15] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                        <span className="w-2 h-2 bg-[#FACC15] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                                     </div>
                                 </div>
                             </div>
@@ -199,15 +163,15 @@ How can I help you today? Ask me anything about GST, Income Tax, or your upcomin
                     </div>
 
                     {/* Suggestions */}
-                    {messages.length <= 2 && (
-                        <div className="suggestions">
-                            <p>Try asking:</p>
-                            <div className="suggestion-chips">
+                    {messages.length <= 1 && (
+                        <div className="px-6 pb-4">
+                            <p className="text-xs text-[#94A3B8] mb-2">Try asking:</p>
+                            <div className="flex flex-wrap gap-2">
                                 {suggestions.map(suggestion => (
                                     <button
                                         key={suggestion}
-                                        className="suggestion-chip"
                                         onClick={() => setInput(suggestion)}
+                                        className="px-3 py-2 bg-[#0A0A0A] border border-white/5 rounded-lg text-sm text-[#94A3B8] hover:text-white hover:border-[#FACC15]/30 transition-all"
                                     >
                                         {suggestion}
                                     </button>
@@ -217,56 +181,72 @@ How can I help you today? Ask me anything about GST, Income Tax, or your upcomin
                     )}
 
                     {/* Input */}
-                    <div className="chat-input-container">
-                        <textarea
-                            className="chat-input"
-                            placeholder="Ask me anything about taxes..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            rows={1}
-                        />
-                        <button
-                            className="btn btn-primary send-btn"
-                            onClick={sendMessage}
-                            disabled={!input.trim() || isTyping}
-                        >
-                            Send
-                        </button>
+                    <div className="p-6 border-t border-white/5">
+                        <div className="flex gap-3">
+                            <input
+                                type="text"
+                                className="flex-1 bg-[#0A0A0A] border border-white/5 rounded-xl px-4 py-3 text-white placeholder:text-[#94A3B8] focus:outline-none focus:border-[#FACC15]/50 focus:ring-1 focus:ring-[#FACC15]/50 transition-all"
+                                placeholder="Ask me anything about taxes..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                            />
+                            <button
+                                onClick={sendMessage}
+                                disabled={!input.trim() || isTyping}
+                                className="px-6 py-3 bg-[#FACC15] text-black rounded-xl font-bold hover:bg-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                <Send className="w-4 h-4" />
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Sidebar - Quick Info */}
-                <aside className="copilot-sidebar">
-                    <div className="sidebar-card">
-                        <h3>⚡ Quick Status</h3>
-                        <div className="status-items">
-                            <div className="status-item">
-                                <span className="status-label">Obligations</span>
-                                <span className="status-value">{obligations.length}</span>
+                {/* Sidebar */}
+                <aside className="w-80 space-y-6">
+                    {/* Quick Status */}
+                    <div className="bg-[#171717]/60 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6">
+                        <h3 className="text-lg font-bold text-white mb-4">Quick Status</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-[#0A0A0A] rounded-xl">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-[#FACC15]" />
+                                    <span className="text-sm text-[#94A3B8]">Obligations</span>
+                                </div>
+                                <span className="text-white font-bold">{obligations.length}</span>
                             </div>
-                            <div className="status-item">
-                                <span className="status-label">Due This Week</span>
-                                <span className="status-value text-warning">
-                                    {deadlines.filter(d => d.daysRemaining <= 7 && d.daysRemaining >= 0).length}
-                                </span>
-                            </div>
-                            <div className="status-item">
-                                <span className="status-label">Overdue</span>
-                                <span className="status-value text-danger">
-                                    {deadlines.filter(d => d.status === 'overdue').length}
-                                </span>
+                            <div className="flex items-center justify-between p-3 bg-[#0A0A0A] rounded-xl">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-orange-400" />
+                                    <span className="text-sm text-[#94A3B8]">Deadlines</span>
+                                </div>
+                                <span className="text-white font-bold">{deadlines.filter(d => d.status !== 'completed').length}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="sidebar-card">
-                        <h3>📚 Quick Links</h3>
-                        <ul className="quick-links">
-                            <li><a href="https://gst.gov.in" target="_blank" rel="noopener noreferrer">GST Portal →</a></li>
-                            <li><a href="https://incometax.gov.in" target="_blank" rel="noopener noreferrer">Income Tax Portal →</a></li>
-                            <li><a href="https://tin.tin.nsdl.com" target="_blank" rel="noopener noreferrer">TDS/TCS Portal →</a></li>
-                        </ul>
+                    {/* Quick Links */}
+                    <div className="bg-[#171717]/60 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6">
+                        <h3 className="text-lg font-bold text-white mb-4">Quick Links</h3>
+                        <div className="space-y-2">
+                            <a
+                                href="https://www.gst.gov.in"
+                                target="_blank"
+                                className="flex items-center justify-between p-3 bg-[#0A0A0A] rounded-xl hover:bg-white/5 transition-all group"
+                            >
+                                <span className="text-sm text-[#94A3B8] group-hover:text-white">GST Portal</span>
+                                <span className="text-[#FACC15]">→</span>
+                            </a>
+                            <a
+                                href="https://www.incometax.gov.in"
+                                target="_blank"
+                                className="flex items-center justify-between p-3 bg-[#0A0A0A] rounded-xl hover:bg-white/5 transition-all group"
+                            >
+                                <span className="text-sm text-[#94A3B8] group-hover:text-white">Income Tax Portal</span>
+                                <span className="text-[#FACC15]">→</span>
+                            </a>
+                        </div>
                     </div>
                 </aside>
             </div>

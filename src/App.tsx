@@ -7,7 +7,13 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Calendar } from './pages/Calendar';
 import { Copilot } from './pages/Copilot';
+import { Invoices } from './pages/Invoices';
+import { Reports } from './pages/Reports';
 import { SignInModal } from './components/SignInModal';
+import { SidebarCopilot } from './components/SidebarCopilot';
+import { useStore } from './lib/store';
+import { signInWithGoogle } from './lib/firebase';
+import { api } from './lib/api';
 import './index.css';
 
 // Wrapper to handle navigation logic inside Router context
@@ -76,6 +82,23 @@ function AppContent() {
     }
   };
 
+  const handleFirebaseLogin = async () => {
+    try {
+      const user = await signInWithGoogle();
+      const backendProfile = await api.syncUser(user);
+      handleLoginSuccess(backendProfile);
+      // Optional: Redirect based on onboarding status
+      if (backendProfile.isNewUser) {
+        navigate('/onboard'); // If backend flags new user
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error("Firebase Login Failed", error);
+      alert("Login Failed. Please check console.");
+    }
+  };
+
   return (
     <>
       <div className="bg-[#0A0A0A] min-h-screen text-white">
@@ -86,9 +109,8 @@ function AppContent() {
               <LandingPage
                 isLoggedIn={isLoggedIn}
                 user={user}
-                onSignInClick={() => setShowSignInModal(true)}
-                // On SignUp, we navigate to /onboard route
-                onSignUpClick={() => navigate('/onboard')}
+                onSignInClick={handleFirebaseLogin}
+                onSignUpClick={handleFirebaseLogin}
                 onLogoutClick={handleLogout}
                 onResetDemo={handleResetDemo}
               />
@@ -100,6 +122,8 @@ function AppContent() {
           <Route path="/dashboard" element={isLoggedIn ? <div className="page"><Dashboard user={user} /></div> : <Navigate to="/" />} />
           <Route path="/calendar" element={isLoggedIn ? <Calendar /> : <Navigate to="/" />} />
           <Route path="/copilot" element={isLoggedIn ? <><Navbar /><div className="page"><Copilot /></div></> : <Navigate to="/" />} />
+          <Route path="/invoices" element={isLoggedIn ? <div className="page"><Invoices /></div> : <Navigate to="/" />} />
+          <Route path="/reports" element={isLoggedIn ? <div className="page"><Reports /></div> : <Navigate to="/" />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

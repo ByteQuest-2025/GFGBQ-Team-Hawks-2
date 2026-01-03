@@ -138,7 +138,7 @@ AVAILABLE DATA from useStore():
 ---
 
 ## 👤 Member 3: AI Copilot Integration
-
+npm 
 ### Your Task
 Replace mock AI responses with real Gemini API integration.
 

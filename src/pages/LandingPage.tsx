@@ -164,7 +164,8 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onSignUpClick, on
                                             muted
                                             loop
                                             playsInline
-                                            src="https://cdn.pixabay.com/video/2021/04/12/70860-537449767_large.mp4"
+                                            src="https://videos.pexels.com/video-files/3129671/3129671-hd_1920_1080_30fps.mp4"
+                                            poster="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=2664&auto=format&fit=crop"
                                         />
                                         <div className="relative z-20 h-full flex flex-col justify-end p-6 pb-12">
                                             <div className="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl">
