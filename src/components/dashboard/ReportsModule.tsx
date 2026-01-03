@@ -6,7 +6,8 @@ import {
     Calendar,
     ArrowUpRight,
     TrendingUp,
-    DollarSign
+    DollarSign,
+    RefreshCw
 } from 'lucide-react';
 import {
     XAxis,
@@ -21,6 +22,7 @@ import {
     Cell,
     Legend
 } from 'recharts';
+import { api } from '../../lib/api';
 
 const data = [
     { name: 'Jan', tax: 4000, income: 24000 },
@@ -32,17 +34,24 @@ const data = [
     { name: 'Jul', tax: 3490, income: 4300 },
 ];
 
-const expenseData = [
-    { name: 'Rent', value: 400 },
-    { name: 'Software', value: 300 },
-    { name: 'Travel', value: 300 },
-    { name: 'Equip', value: 200 },
-];
-
 const COLORS = ['#FACC15', '#10B981', '#3B82F6', '#EF4444'];
 
 export const ReportsModule = () => {
     const [quarter, setQuarter] = useState('Q1 2026');
+    const [expenseData, setExpenseData] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    const analyzeExpenses = async () => {
+        setLoading(true);
+        try {
+            const result = await api.analyzeExpensesFromSheet();
+            setExpenseData(result.analysis);
+        } catch (error) {
+            console.error('Expense analysis failed:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <motion.div
@@ -57,6 +66,14 @@ export const ReportsModule = () => {
                     <p className="text-[#9CA3AF]">Deep dive into your tax liabilities and spending.</p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={analyzeExpenses}
+                        disabled={loading}
+                        className="bg-[#FACC15] text-black font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-yellow-300 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                        {loading ? 'Analyzing...' : 'Analyze Expenses'}
+                    </button>
                     <button className="bg-[#171717] border border-white/10 text-white font-medium px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-white/5 transition-colors">
                         <Calendar size={16} /> {quarter}
                     </button>

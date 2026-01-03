@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Search, 
-    Plus, 
-    FileText, 
-    MoreVertical, 
+import {
+    Search,
+    Plus,
+    FileText,
+    MoreVertical,
     Filter,
     Download,
     Eye,
-    X, 
-    CheckCircle2, 
+    X,
+    CheckCircle2,
     AlertCircle,
-    Clock
+    Clock,
+    Upload
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 export const InvoicesModule = () => {
     const [selectedTab, setSelectedTab] = useState('All');
     const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+    const [uploading, setUploading] = useState(false);
+    const [analyzedInvoices, setAnalyzedInvoices] = useState<any[]>([]);
 
     const tabs = ['All', 'Pending', 'Verified', 'Flagged'];
 
@@ -27,7 +31,42 @@ export const InvoicesModule = () => {
         { id: 'INV-003', vendor: 'Uber Business', category: 'Travel', date: '2025-12-28', amount: '₹850.00', status: 'Verified' },
         { id: 'INV-004', vendor: 'Apple Store', category: 'Electronics', date: '2025-12-25', amount: '₹1,24,900.00', status: 'Flagged' },
         { id: 'INV-005', vendor: 'Zoho Books', category: 'Software', date: '2025-12-20', amount: '₹2,499.00', status: 'Verified' },
+        ...analyzedInvoices
     ];
+
+    const handleFileUpload = async (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        setUploading(true);
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const base64 = reader.result as string;
+                const result = await api.analyzeDocument(base64);
+
+                const newInvoice = {
+                    id: `INV-${Date.now()}`,
+                    vendor: result.extractedData.vendorName || 'Unknown Vendor',
+                    category: 'Analyzed',
+                    date: result.extractedData.invoiceDate || new Date().toISOString().split('T')[0],
+                    amount: result.extractedData.totalAmount || '₹0.00',
+                    status: 'Pending',
+                    extractedData: result.extractedData
+                };
+
+                setAnalyzedInvoices([newInvoice, ...analyzedInvoices]);
+            } catch (error) {
+                console.error('Document analysis failed:', error);
+                alert('Failed to analyze document. Please try again.');
+            } finally {
+                setUploading(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -39,7 +78,7 @@ export const InvoicesModule = () => {
     };
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -51,9 +90,22 @@ export const InvoicesModule = () => {
                     <h1 className="text-3xl font-bold text-white mb-2">Invoices</h1>
                     <p className="text-[#9CA3AF]">Manage and track your business expenses.</p>
                 </div>
-                <button className="bg-[#FACC15] hover:bg-[#EAB308] text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(250,204,21,0.2)]">
-                    <Plus size={18} /> Add New Invoice
-                </button>
+                <label className="bg-[#FACC15] hover:bg-[#EAB308] text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(250,204,21,0.2)] cursor-pointer">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
+                        className="hidden"
+                        disabled={uploading}
+                    />
+                    {uploading ? (
+                        <>Analyzing...</>
+                    ) : (
+                        <>
+                            <Upload size={18} /> Add New Invoice
+                        </>
+                    )}
+                </label>
             </div>
 
             {/* Controls */}
@@ -63,11 +115,10 @@ export const InvoicesModule = () => {
                         <button
                             key={tab}
                             onClick={() => setSelectedTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                selectedTab === tab 
-                                ? 'bg-[#FACC15] text-black shadow-lg' 
-                                : 'text-[#9CA3AF] hover:text-white'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedTab === tab
+                                    ? 'bg-[#FACC15] text-black shadow-lg'
+                                    : 'text-[#9CA3AF] hover:text-white'
+                                }`}
                         >
                             {tab}
                         </button>
@@ -76,9 +127,9 @@ export const InvoicesModule = () => {
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="relative flex-1 sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-4 h-4" />
-                        <input 
-                            type="text" 
-                            placeholder="Search invoices..." 
+                        <input
+                            type="text"
+                            placeholder="Search invoices..."
                             className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#FACC15]/50"
                         />
                     </div>
@@ -107,7 +158,7 @@ export const InvoicesModule = () => {
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {invoices.map((invoice, index) => (
-                                <motion.tr 
+                                <motion.tr
                                     key={invoice.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -147,14 +198,14 @@ export const InvoicesModule = () => {
             <AnimatePresence>
                 {selectedInvoice && (
                     <>
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setSelectedInvoice(null)}
                             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
