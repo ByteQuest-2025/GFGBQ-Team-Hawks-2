@@ -40,13 +40,8 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                         <button
                             key={link.name}
                             onClick={() => {
-<<<<<<< Updated upstream
-                                if (link.path) navigate(link.path);
-                                else setActiveTab(link.id);
-=======
                                 setActiveTab(link.id);
                                 navigate(link.route);
->>>>>>> Stashed changes
                             }}
                             className={`relative text-sm font-medium transition-all duration-200 tracking-wide hover:opacity-100 ${activeTab === link.id
                                 ? 'text-white opacity-100 font-semibold'
@@ -120,13 +115,8 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                                 <button
                                     key={link.id}
                                     onClick={() => {
-<<<<<<< Updated upstream
-                                        if (link.path) navigate(link.path);
-                                        else setActiveTab(link.id);
-=======
                                         setActiveTab(link.id);
                                         navigate(link.route);
->>>>>>> Stashed changes
                                         setMobileMenuOpen(false);
                                     }}
                                     className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
