@@ -15,9 +15,9 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const navLinks = [
-        { name: 'Dashboard', id: 'Overview' },
-        { name: 'Calendar', id: 'Calendar' },
-        { name: 'Copilot', id: 'Copilot' }
+        { name: 'Dashboard', id: 'Overview', path: '/dashboard' },
+        { name: 'Calendar', id: 'Calendar', path: '/calendar' },
+        { name: 'Copilot', id: 'Copilot', path: '/copilot' }
     ];
 
     return (
@@ -37,7 +37,10 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                     {navLinks.map(link => (
                         <button
                             key={link.name}
-                            onClick={() => setActiveTab(link.id)}
+                            onClick={() => {
+                                if (link.path) navigate(link.path);
+                                else setActiveTab(link.id);
+                            }}
                             className={`relative text-sm font-medium transition-all duration-200 tracking-wide hover:opacity-100 ${activeTab === link.id
                                 ? 'text-white opacity-100 font-semibold'
                                 : 'text-white/70 hover:text-[#FACC15]'
@@ -109,7 +112,11 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                             {navLinks.map((link) => (
                                 <button
                                     key={link.id}
-                                    onClick={() => { setActiveTab(link.id); setMobileMenuOpen(false); }}
+                                    onClick={() => {
+                                        if (link.path) navigate(link.path);
+                                        else setActiveTab(link.id);
+                                        setMobileMenuOpen(false);
+                                    }}
                                     className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
                                 >
                                     {link.name}
