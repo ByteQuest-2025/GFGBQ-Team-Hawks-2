@@ -14,10 +14,25 @@ router.post('/chat', async (req, res) => {
         }
 
         // Fetch Context
-        const profile = await UserService.getUser(userId);
-        const obligations = await ObligationService.getUserObligations(userId);
+        let profile = await UserService.getUser(userId);
 
-        if (!profile) return res.status(404).json({ error: 'User not found' });
+        // Fallback to mock profile if user not found (guest users)
+        if (!profile) {
+            profile = {
+                id: userId,
+                name: 'Guest Business',
+                type: 'freelancer',
+                turnover: '< ₹20L',
+                ownerName: 'Guest User',
+                state: 'Delhi',
+                email: 'guest@example.com',
+                hasGST: false,
+                panNumber: '',
+                createdAt: new Date()
+            } as any;
+        }
+
+        const obligations = await ObligationService.getUserObligations(userId);
 
         // Call AI
         const result = await CopilotService.chat(message, profile as any, obligations);
