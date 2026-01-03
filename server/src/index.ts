@@ -9,19 +9,13 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 import authRoutes from './routes/authRoutes';
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-
 import complianceRoutes from './routes/complianceRoutes';
-
 import copilotRoutes from './routes/copilotRoutes';
-
 import toolsRoutes from './routes/complianceToolsRoutes';
 import documentRoutes from './routes/documentRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import integrationRoutes from './routes/integrationRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Middleware
 app.use(cors());
@@ -29,6 +23,7 @@ app.use(express.json({ limit: '10mb' })); // For file uploads
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/obligations', complianceRoutes);
 app.use('/api/v1/copilot', copilotRoutes);
 app.use('/api/v1/tools', toolsRoutes);

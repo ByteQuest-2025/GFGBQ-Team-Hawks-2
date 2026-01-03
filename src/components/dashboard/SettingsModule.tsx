@@ -1,18 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    User, 
-    Briefcase, 
-    CreditCard, 
-    Bell, 
-    Shield, 
+import {
+    User,
+    Briefcase,
+    CreditCard,
+    Bell,
+    Shield,
     Save,
     Building2,
-    Landmark
+    Landmark,
+    Loader2
 } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useStore } from '../../lib/store';
 
 export const SettingsModule = () => {
+    const { profile } = useStore();
     const [activeTab, setActiveTab] = useState('business');
+    const [formData, setFormData] = useState<any>({
+        name: '',
+        type: 'freelancer',
+        ownerName: '',
+        email: '',
+        panNumber: '',
+        hasGST: false,
+        gstNumber: '',
+        address: '',
+        state: 'Delhi',
+        turnover: '< ₹20L'
+    });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const tabs = [
         { id: 'profile', label: 'My Profile', icon: User },
@@ -21,8 +40,57 @@ export const SettingsModule = () => {
         { id: 'security', label: 'Security', icon: Shield },
     ];
 
+    // Load user profile on mount
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const userId = profile?.id || 'guest';
+                const result = await api.getUserProfile(userId);
+                if (result.profile) {
+                    setFormData({
+                        name: result.profile.name || '',
+                        type: result.profile.type || 'freelancer',
+                        ownerName: result.profile.ownerName || '',
+                        email: result.profile.email || '',
+                        panNumber: result.profile.panNumber || '',
+                        hasGST: result.profile.hasGST || false,
+                        gstNumber: result.profile.gstNumber || '',
+                        address: result.profile.address || '',
+                        state: result.profile.state || 'Delhi',
+                        turnover: result.profile.turnover || '< ₹20L'
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadProfile();
+    }, [profile]);
+
+    const handleInputChange = (field: string, value: any) => {
+        setFormData({ ...formData, [field]: value });
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        setMessage(null);
+        try {
+            const userId = profile?.id || 'guest';
+            await api.updateUserProfile(userId, formData);
+            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setTimeout(() => setMessage(null), 3000);
+        } catch (error) {
+            console.error('Failed to save profile:', error);
+            setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -36,11 +104,10 @@ export const SettingsModule = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                activeTab === tab.id 
-                                ? 'bg-[#FACC15] text-black shadow-lg shadow-[#FACC15]/20' 
-                                : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
-                            }`}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                                    ? 'bg-[#FACC15] text-black shadow-lg shadow-[#FACC15]/20'
+                                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                                }`}
                         >
                             <tab.icon size={18} />
                             {tab.label}
@@ -73,9 +140,9 @@ export const SettingsModule = () => {
                                     <label className="text-xs font-bold text-[#9CA3AF] uppercase">Business Name</label>
                                     <div className="relative">
                                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
-                                        <input 
-                                            type="text" 
-                                            defaultValue="TechFlow Solutions" 
+                                        <input
+                                            type="text"
+                                            defaultValue="TechFlow Solutions"
                                             className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-[#FACC15]/50 transition-all focus:shadow-[0_0_20px_rgba(250,204,21,0.1)]"
                                         />
                                     </div>
@@ -93,16 +160,16 @@ export const SettingsModule = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-[#9CA3AF] uppercase">GSTIN</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="22AAAAA0000A1Z5"
                                         className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FACC15]/50 transition-all"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-[#9CA3AF] uppercase">PAN Number</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="ABCDE1234F"
                                         className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FACC15]/50 transition-all"
                                     />
@@ -111,7 +178,7 @@ export const SettingsModule = () => {
 
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-[#9CA3AF] uppercase">Registered Address</label>
-                                <textarea 
+                                <textarea
                                     rows={4}
                                     className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FACC15]/50 transition-all resize-none"
                                     defaultValue="123, Innovation Park, Sector 45, Gurgaon, Haryana - 122003"
@@ -143,7 +210,7 @@ export const SettingsModule = () => {
                                     <p className="text-[#9CA3AF] text-sm">**** **** **** 8892</p>
                                 </div>
                             </div>
-                            
+
                             <div className="bg-[#0A0A0A] border border-dashed border-white/20 rounded-2xl p-6 flex flex-col items-center justify-center h-48 hover:bg-white/5 transition-all cursor-pointer">
                                 <div className="p-4 bg-white/5 rounded-full mb-3 text-white">
                                     <CreditCard size={24} />
