@@ -19,7 +19,7 @@ function AppContent() {
   const [user, setUser] = useState<any>(null);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { setProfile } = useStore();
 
   // 1. Initialize Auth State
   useEffect(() => {
@@ -83,9 +83,11 @@ function AppContent() {
     try {
       const user = await signInWithGoogle();
       const backendResponse = await api.syncUser(user);
+      const userData = backendResponse.user || { ...backendResponse, id: backendResponse.uid };
 
-      // Update local state
-      handleLoginSuccess(backendResponse.user || { ...backendResponse, id: backendResponse.uid });
+      // Update local state and Global Store
+      handleLoginSuccess(userData);
+      setProfile(userData);
 
       // Redirect Logic
       if (backendResponse.profileCompleted) {

@@ -131,6 +131,60 @@ export const SettingsModule = () => {
 
             {/* Main Content Form */}
             <div className="flex-1 bg-[#171717] border border-white/5 rounded-[2rem] p-8">
+                {activeTab === 'profile' && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <h2 className="text-2xl font-bold text-white mb-6">My Profile</h2>
+                        <div className="space-y-6 max-w-xl">
+                            <div className="flex items-center gap-6 mb-8">
+                                {profile?.photoURL ? (
+                                    <img src={profile.photoURL} alt="Profile" className="w-24 h-24 rounded-full border-4 border-[#FACC15]/20 object-cover" />
+                                ) : (
+                                    <div className="w-24 h-24 rounded-full bg-[#FACC15] flex items-center justify-center text-black text-3xl font-bold">
+                                        {formData.name?.charAt(0) || 'U'}
+                                    </div>
+                                )}
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">{formData.name}</h3>
+                                    <p className="text-gray-400">{formData.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[#9CA3AF] uppercase">Full Name</label>
+                                <div className="relative">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
+                                    <input
+                                        type="text"
+                                        value={formData.name || ''}
+                                        onChange={(e) => handleInputChange('name', e.target.value)}
+                                        className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-[#FACC15]/50 transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[#9CA3AF] uppercase">Email Address</label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-5 h-5 flex items-center justify-center">@</div>
+                                    <input
+                                        type="email"
+                                        value={formData.email || ''}
+                                        disabled
+                                        className="w-full bg-[#171717] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-gray-500 cursor-not-allowed"
+                                    />
+                                </div>
+                            </div>
+
+                            <button onClick={handleSave} className="bg-[#FACC15] text-black font-bold px-6 py-3 rounded-xl hover:bg-[#EAB308] transition-colors mt-4">
+                                {saving ? 'Saving...' : 'Update Profile'}
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
                 {activeTab === 'business' && (
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}

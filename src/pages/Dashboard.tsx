@@ -47,6 +47,7 @@ export function Dashboard({ user }: DashboardProps) {
                 email: user.email || '',
                 hasGST: false,
                 panNumber: '',
+                photoURL: user.picture || user.photoURL,
                 createdAt: new Date()
             });
         }
@@ -88,6 +89,7 @@ export function Dashboard({ user }: DashboardProps) {
             {/* Shared Header Component */}
             <Header
                 userDisplayName={userDisplayName}
+                userPhotoURL={user?.photoURL || profile?.photoURL}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={handleLogout}

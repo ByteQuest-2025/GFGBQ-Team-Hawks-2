@@ -6,32 +6,37 @@ const mockDb: Record<string, any> = {};
 
 export const UserService = {
     // Create or Update User Profile
-    async syncUser(uid: string, data: Partial<BusinessProfile> & { email: string }) {
+    async syncUser(uid: string, data: Partial<BusinessProfile> & { email?: string }) {
         const timestamp = new Date();
         const userRef = db.collection('users').doc(uid);
 
         try {
             // Check if user exists first to determine "isNewUser" logic correctly if needed elsewhere
             // But for sync, we just want to ensure the record exists with latest auth info.
-            // We do NOT overwrite existing business profile data with defaults.
+
+            // Clean undefined values to avoid Firestore errors
+            const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+                if (value !== undefined) acc[key] = value;
+                return acc;
+            }, {} as any);
 
             await userRef.set({
-                email: data.email,
-                name: data.name, // Allow name update from Google? Maybe.
+                ...cleanData,
                 updatedAt: timestamp,
                 lastLoginAt: timestamp
             }, { merge: true });
 
-            return { uid, ...data };
+            const updatedDoc = await userRef.get();
+            return { id: uid, ...updatedDoc.data() };
         } catch (error) {
-            console.warn(`[Mock Fallback] Firestore write failed. Using in-memory store.`);
+            console.warn(`[Mock Fallback] Firestore write failed. Using in-memory store.`, error);
             // Mock logic
             if (!mockDb[uid]) {
                 mockDb[uid] = { ...data, createdAt: timestamp, updatedAt: timestamp };
             } else {
                 mockDb[uid] = { ...mockDb[uid], ...data, updatedAt: timestamp };
             }
-            return { uid, ...mockDb[uid] };
+            return { id: uid, ...mockDb[uid] };
         }
     },
 

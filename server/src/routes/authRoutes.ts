@@ -16,12 +16,12 @@ router.post('/sync', verifyAuth, async (req, res) => {
             email: email || '',
             name: name || 'User',
             photoURL: picture,
-            businessType
+            type: businessType as any
         });
 
         // Check profile completeness logic
         const profile = await UserService.getUser(uid);
-        const isProfileComplete = !!(profile?.name && profile?.businessType && profile?.turnover);
+        const isProfileComplete = !!(profile?.name && profile?.type && profile?.turnover);
 
         res.json({
             success: true,

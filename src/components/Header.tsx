@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeaderProps {
     userDisplayName: string;
+    userPhotoURL?: string;
     activeTab: string;
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setActiveTab, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ userDisplayName, userPhotoURL, activeTab, setActiveTab, onLogout }) => {
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -74,9 +75,14 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                             <p className="text-xs text-[#9CA3AF] leading-tight font-medium">Signed in as</p>
                             <p className="text-sm font-bold text-white leading-tight truncate max-w-[100px]">{userDisplayName.split(' ')[0]}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-[#FACC15] flex items-center justify-center text-black font-extrabold text-lg shadow-[0_0_10px_rgba(250,204,21,0.2)] shrink-0">
-                            {userDisplayName.charAt(0)}
-                        </div>
+
+                        {userPhotoURL ? (
+                            <img src={userPhotoURL} alt="User" className="w-10 h-10 rounded-full border border-white/10 shadow-[0_0_10px_rgba(250,204,21,0.2)] shrink-0 object-cover" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#FACC15] flex items-center justify-center text-black font-extrabold text-lg shadow-[0_0_10px_rgba(250,204,21,0.2)] shrink-0">
+                                {userDisplayName.charAt(0)}
+                            </div>
+                        )}
 
                         <button
                             onClick={onLogout}
@@ -89,42 +95,44 @@ export const Header: React.FC<HeaderProps> = ({ userDisplayName, activeTab, setA
                         <button className="md:hidden text-white ml-2" onClick={() => setMobileMenuOpen(true)}>
                             <Menu className="w-6 h-6" />
                         </button>
-                    </div>
-                </div>
-            </div>
+                    </div >
+                </div >
+            </div >
 
             {/* MOBILE MENU */}
             <AnimatePresence>
-                {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg flex flex-col p-6"
-                    >
-                        <div className="flex justify-end mb-8">
-                            <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-white">
-                                <X className="w-8 h-8" />
-                            </button>
-                        </div>
-                        <nav className="flex flex-col gap-8 text-center mt-10">
-                            {navLinks.map((link) => (
-                                <button
-                                    key={link.id}
-                                    onClick={() => {
-                                        setActiveTab(link.id);
-                                        navigate(link.route);
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
-                                >
-                                    {link.name}
+                {
+                    mobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg flex flex-col p-6"
+                        >
+                            <div className="flex justify-end mb-8">
+                                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-white">
+                                    <X className="w-8 h-8" />
                                 </button>
-                            ))}
-                        </nav>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </header>
+                            </div>
+                            <nav className="flex flex-col gap-8 text-center mt-10">
+                                {navLinks.map((link) => (
+                                    <button
+                                        key={link.id}
+                                        onClick={() => {
+                                            setActiveTab(link.id);
+                                            navigate(link.route);
+                                            setMobileMenuOpen(false);
+                                        }}
+                                        className="text-2xl font-bold text-white hover:text-[#FACC15] transition-colors"
+                                    >
+                                        {link.name}
+                                    </button>
+                                ))}
+                            </nav>
+                        </motion.div>
+                    )
+                }
+            </AnimatePresence >
+        </header >
     );
 };
