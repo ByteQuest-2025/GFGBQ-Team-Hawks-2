@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Calculator, X, ArrowRight, ShieldCheck, Zap, Heart, TrendingUp, BarChart3, PieChart, Activity, LogOut } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Check, Calculator, X, ArrowRight, ShieldCheck, Zap, Heart, TrendingUp, BarChart3, PieChart, Activity, LogOut, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface LandingPageProps {
     isLoggedIn: boolean;
     user: any;
     onSignInClick: () => void;
+    onSignUpClick: () => void;
     onLogoutClick: () => void;
     onResetDemo: () => void;
 }
 
-export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, onResetDemo }: LandingPageProps) {
+export function LandingPage({ isLoggedIn, user, onSignInClick, onSignUpClick, onLogoutClick, onResetDemo }: LandingPageProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [income, setIncome] = useState('');
     const [tax, setTax] = useState<number | null>(null);
-    const navigate = useNavigate();
 
     const calculateTax = () => {
         const inc = parseFloat(income);
@@ -30,7 +30,7 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
         <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden font-sans">
 
             {/* NAVIGATION */}
-            <nav className="fixed w-full z-50 top-0 left-0 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5">
+            <nav className="fixed w-full z-50 top-0 left-0 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <button onClick={onResetDemo} className="flex items-center gap-2 group cursor-pointer z-50">
                         <div className="w-10 h-10 bg-[#FACC15] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.3)] group-hover:shadow-[0_0_40px_rgba(250,204,21,0.5)] transition-all duration-300">
@@ -55,32 +55,40 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
 
                         <div className="flex items-center gap-4">
                             {isLoggedIn ? (
-                                <div className="flex items-center gap-4">
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex items-center gap-4"
+                                >
                                     <div className="text-right hidden sm:block">
                                         <p className="text-xs text-[#94A3B8]">Signed in as</p>
                                         <p className="text-sm font-bold text-white">{userName}</p>
                                     </div>
-                                    <div className="w-10 h-10 rounded-full bg-[#262626] border border-white/10 flex items-center justify-center text-[#FACC15] font-bold text-lg">
+                                    <div className="w-10 h-10 rounded-full bg-[#171717] border border-white/10 flex items-center justify-center text-[#FACC15] font-bold text-lg shadow-inner">
                                         {userName.charAt(0)}
                                     </div>
-                                    <button onClick={onLogoutClick} className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer z-50">
+                                    <button
+                                        onClick={onLogoutClick}
+                                        className="p-2 text-[#94A3B8] hover:text-white transition-colors rounded-full hover:bg-white/5"
+                                        title="Logout"
+                                    >
                                         <LogOut size={20} />
                                     </button>
-                                </div>
+                                </motion.div>
                             ) : (
                                 <>
                                     <button
                                         onClick={onSignInClick}
-                                        className="text-[#94A3B8] hover:text-white text-sm font-medium transition-colors cursor-pointer z-50"
+                                        className="text-[#94A3B8] hover:text-white text-sm font-medium transition-colors cursor-pointer"
                                     >
                                         Sign In
                                     </button>
-                                    {/* SIGN UP BUTTON - Uses Link to navigate to /onboard */}
-                                    <Link to="/onboard">
-                                        <button className="bg-[#FACC15] text-black px-6 py-2.5 rounded-full font-semibold hover:bg-yellow-300 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer z-50">
-                                            Sign Up
-                                        </button>
-                                    </Link>
+                                    <button
+                                        onClick={onSignUpClick}
+                                        className="bg-[#FACC15] text-black px-6 py-2.5 rounded-full font-semibold hover:bg-yellow-300 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer"
+                                    >
+                                        Sign Up
+                                    </button>
                                 </>
                             )}
                         </div>
@@ -100,57 +108,63 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -50 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
                         className="relative order-2 lg:order-1"
                     >
-                        <div className="relative mx-auto border-gray-800 bg-gray-900 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-[0_0_40px_rgba(250,204,21,0.25)] overflow-hidden flex flex-col">
+                        <div className="relative mx-auto border-gray-800 bg-gray-900 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-[0_0_40px_rgba(250,204,21,0.25)] overflow-hidden flex flex-col transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
                             <div className="h-[32px] w-[3px] bg-gray-800 absolute -left-[17px] top-[72px] rounded-l-lg"></div>
                             <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
 
                             <div className="rounded-[2rem] overflow-hidden w-full h-full bg-[#171717] relative flex flex-col">
                                 {isLoggedIn ? (
-                                    <div className="flex-1 bg-[#0A0A0A] p-6 relative">
+                                    <div className="flex-1 bg-[#0A0A0A] p-6 relative flex flex-col h-full">
                                         <div className="flex items-center justify-between mb-8 mt-8">
                                             <div className="text-white font-bold text-lg">My Tax Health</div>
                                             <Activity className="text-green-500 w-5 h-5 animate-pulse" />
                                         </div>
-                                        <div className="flex justify-center mb-8">
-                                            <div className="w-40 h-40 rounded-full border-8 border-[#262626] flex items-center justify-center relative">
+                                        <div className="flex justify-center mb-10 flex-1 flex-col items-center">
+                                            <div className="w-48 h-48 rounded-full border-8 border-[#262626] flex items-center justify-center relative shadow-[0_0_30px_rgba(34,197,94,0.1)]">
                                                 <div className="absolute inset-0 rounded-full border-8 border-t-green-500 border-r-green-500 border-b-transparent border-l-transparent rotate-45"></div>
                                                 <div className="text-center">
-                                                    <div className="text-4xl font-bold text-white">96%</div>
-                                                    <div className="text-xs text-green-400 font-medium">EXCELLENT</div>
+                                                    <div className="text-5xl font-bold text-white tracking-tighter">96%</div>
+                                                    <div className="text-xs text-green-400 font-bold mt-1 tracking-widest">EXCELLENT</div>
                                                 </div>
+                                            </div>
+                                            <div className="mt-8 text-center">
+                                                <p className="text-sm text-gray-400">Next Filing Due</p>
+                                                <p className="text-white font-bold">15 March 2026</p>
                                             </div>
                                         </div>
-                                        <div className="space-y-4">
-                                            <div className="bg-[#262626] p-4 rounded-xl border border-white/5 flex items-center gap-4">
-                                                <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400"><PieChart size={20} /></div>
-                                                <div>
-                                                    <div className="text-xs text-[#94A3B8]">GST Filed</div>
-                                                    <div className="text-sm font-bold text-white">Q3 Pending</div>
-                                                </div>
+                                        {/* Bottom Actions */}
+                                        <div className="bg-[#171717] p-4 rounded-xl border border-white/5 flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-[#FACC15]/20 rounded-lg text-[#FACC15]"><PieChart size={18} /></div>
+                                                <div className="text-xs text-gray-400">Presumptive Scheme</div>
                                             </div>
-                                            <div className="bg-[#262626] p-4 rounded-xl border border-white/5 flex items-center gap-4">
-                                                <div className="p-2 bg-[#FACC15]/20 rounded-lg text-[#FACC15]"><BarChart3 size={20} /></div>
-                                                <div>
-                                                    <div className="text-xs text-[#94A3B8]">Tax Saved</div>
-                                                    <div className="text-sm font-bold text-white">₹ 42,000</div>
-                                                </div>
-                                            </div>
+                                            <div className="text-green-400 text-xs font-bold">ACTIVE</div>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
+                                        <div className="absolute inset-0 bg-cover bg-center z-0 opacity-60" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=2664&auto=format&fit=crop")' }}></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/20 via-[#0A0A0A]/50 to-[#0A0A0A] z-10"></div>
                                         <video
-                                            className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-lighten"
+                                            className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-lighten z-0"
                                             autoPlay
                                             muted
                                             loop
                                             playsInline
                                             src="https://cdn.pixabay.com/video/2021/04/12/70860-537449767_large.mp4"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0A0A0A]/80"></div>
+                                        <div className="relative z-20 h-full flex flex-col justify-end p-6 pb-12">
+                                            <div className="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="w-8 h-8 rounded-full bg-[#FACC15] flex items-center justify-center text-black font-bold">AI</div>
+                                                    <div className="text-xs font-medium text-white">Copilot Note</div>
+                                                </div>
+                                                <p className="text-sm text-gray-200">"You can save ₹42,000 using 44ADA this year."</p>
+                                            </div>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -163,7 +177,7 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -30 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                         className="order-1 lg:order-2 text-center lg:text-left"
                     >
                         {isLoggedIn ? (
@@ -176,12 +190,17 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-white">{userName}! 👋</span>
                                 </h1>
                                 <p className="text-xl text-[#94A3B8] max-w-lg mx-auto lg:mx-0 mb-10 leading-relaxed">
-                                    Your tax health score is optimal. You have <span className="text-white font-bold">2 pending actions</span> for this quarter.
+                                    Your tax health score is <span className="text-white font-bold">Optimal</span>. No critical alerts found for this quarter.
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
                                     <Link to="/dashboard" className="w-full sm:w-auto">
-                                        <button className="w-full sm:w-auto bg-[#FACC15] text-black px-8 py-4 rounded-full font-bold hover:bg-yellow-300 transition-all hover:scale-105 shadow-[0_0_20px_rgba(250,204,21,0.3)] flex items-center justify-center gap-2 z-50 cursor-pointer">
+                                        <button className="w-full sm:w-auto bg-[#FACC15] text-black px-8 py-4 rounded-full font-bold hover:bg-yellow-300 transition-all hover:scale-105 shadow-[0_0_20px_rgba(250,204,21,0.3)] flex items-center justify-center gap-2 cursor-pointer">
                                             Go to Dashboard <ArrowRight size={18} />
+                                        </button>
+                                    </Link>
+                                    <Link to="/copilot" className="w-full sm:w-auto">
+                                        <button className="w-full sm:w-auto px-8 py-4 rounded-full font-bold border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                            Ask Copilot
                                         </button>
                                     </Link>
                                 </div>
@@ -200,15 +219,15 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
                                     The intelligent copilot for micro-businesses. We handle the complexity so you can focus on building your empire.
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                                    {/* GET STARTED BUTTON - Link to Onboard */}
-                                    <Link to="/onboard" className="w-full sm:w-auto">
-                                        <button className="w-full sm:w-auto bg-[#FACC15] text-black px-8 py-4 rounded-full font-bold hover:bg-yellow-300 transition-all hover:scale-105 shadow-[0_0_20px_rgba(250,204,21,0.3)] flex items-center justify-center gap-2 z-50 cursor-pointer">
-                                            Get Started <ArrowRight size={18} />
-                                        </button>
-                                    </Link>
+                                    <button
+                                        onClick={onSignUpClick}
+                                        className="w-full sm:w-auto bg-[#FACC15] text-black px-8 py-4 rounded-full font-bold hover:bg-yellow-300 transition-all hover:scale-105 shadow-[0_0_20px_rgba(250,204,21,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+                                    >
+                                        Get Started <ArrowRight size={18} />
+                                    </button>
                                     <button
                                         onClick={() => setIsModalOpen(true)}
-                                        className="w-full sm:w-auto px-8 py-4 rounded-full font-bold border border-[#FACC15] text-[#FACC15] hover:bg-[#FACC15]/10 transition-all flex items-center justify-center gap-2 z-50 cursor-pointer"
+                                        className="w-full sm:w-auto px-8 py-4 rounded-full font-bold border border-[#FACC15] text-[#FACC15] hover:bg-[#FACC15]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         <Calculator size={18} /> Check Tax Rate
                                     </button>
@@ -219,13 +238,13 @@ export function LandingPage({ isLoggedIn, user, onSignInClick, onLogoutClick, on
                 </AnimatePresence>
             </main>
 
-            {/* WHY TAXALLY */}
+            {/* WHY TAXALLY (Only Guest) */}
             {!isLoggedIn && (
                 <section className="py-24 bg-[#171717]/30 border-y border-white/5">
                     <div className="max-w-7xl mx-auto px-6">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Why TaxAlly?</h2>
-                            <p className="text-[#94A3B8] max-w-2xl mx-auto">We built this specifically for the creators, the coders, and the solopreneurs who hate paperwork.</p>
+                            <p className="text-[#94A3B8] max-w-2xl mx-auto">We built this specifically for the creators, the coders, and the solopreneurs for whom time is money.</p>
                         </div>
                         <div className="grid md:grid-cols-3 gap-8">
                             <div className="bg-[#171717]/60 backdrop-blur-xl border border-white/5 p-8 rounded-3xl hover:border-[#FACC15]/50 transition-colors group">

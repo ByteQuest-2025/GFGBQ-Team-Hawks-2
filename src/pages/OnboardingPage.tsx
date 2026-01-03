@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, Check, Calendar, Lock, User, Briefcase, CreditCard, Mail, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, ArrowRight, ArrowLeft, User, Mail, Lock, Calendar, Briefcase, CreditCard, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 
@@ -9,7 +10,6 @@ type FormData = {
     email: string;
     password: string;
     dob: string;
-    age: string;
     mobile: string;
     businessName: string;
     businessType: string;
@@ -20,220 +20,148 @@ type FormData = {
     gst: boolean;
 };
 
-// --- Utils ---
+// --- Password Strength ---
 const getPasswordStrength = (pass: string) => {
-    if (pass.length === 0) return 0;
+    if (!pass) return 0;
     if (pass.length < 6) return 1;
     if (pass.length < 10) return 2;
     return 3;
 };
 
-// --- Validation ---
-const isValidStep1 = (data: FormData) => {
-    return data.fullName.length > 2 &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) &&
-        data.password.length >= 6 &&
-        data.dob !== '' &&
-        data.mobile.length === 10;
-};
-
-const isValidStep2 = (data: FormData) => {
-    return data.businessName.length > 2 &&
-        data.businessType !== '' &&
-        data.turnover !== '' &&
-        data.state !== '' &&
-        data.aadhaar.length === 12;
-};
-
-const isValidStep3 = (data: FormData) => {
-    return data.pan.length === 10;
-};
-
 export function OnboardingPage() {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
-    const [completed, setCompleted] = useState(false);
+    const [direction, setDirection] = useState(0);
+    const [isCompleted, setIsCompleted] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // --- Safe Initial State ---
+    // --- Initial Data Load ---
     const [formData, setFormData] = useState<FormData>(() => {
         try {
             const saved = localStorage.getItem('onboarding_data');
             return saved ? JSON.parse(saved) : {
-                fullName: '',
-                email: '',
-                password: '',
-                dob: '',
-                age: '',
-                mobile: '',
-                businessName: '',
-                businessType: '',
-                turnover: '',
-                state: '',
-                aadhaar: '',
-                pan: '',
-                gst: false,
+                fullName: '', email: '', password: '', dob: '', mobile: '',
+                businessName: '', businessType: '', turnover: '', state: '',
+                aadhaar: '', pan: '', gst: false
             };
-        } catch (e) {
-            console.error("Error parsing onboarding data, resetting form", e);
+        } catch {
             return {
-                fullName: '',
-                email: '',
-                password: '',
-                dob: '',
-                age: '',
-                mobile: '',
-                businessName: '',
-                businessType: '',
-                turnover: '',
-                state: '',
-                aadhaar: '',
-                pan: '',
-                gst: false,
+                fullName: '', email: '', password: '', dob: '', mobile: '',
+                businessName: '', businessType: '', turnover: '', state: '',
+                aadhaar: '', pan: '', gst: false
             };
         }
     });
 
+    // --- Persistence ---
     useEffect(() => {
         localStorage.setItem('onboarding_data', JSON.stringify(formData));
     }, [formData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-
         if (name === 'pan') {
-            setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
+            setFormData(p => ({ ...p, [name]: value.toUpperCase() }));
             return;
         }
-
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            setFormData(p => ({ ...p, [name]: checked }));
             return;
         }
-
-        setFormData(prev => ({ ...prev, [name]: value }));
-
-        if (name === 'dob') {
-            const birthDate = new Date(value);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            setFormData(prev => ({ ...prev, age: age.toString() }));
-        }
+        setFormData(p => ({ ...p, [name]: value }));
     };
 
-    const nextStep = () => {
+    const handleNext = () => {
         if (step < 3) {
-            setStep(prev => prev + 1);
+            setDirection(1);
+            setStep(s => s + 1);
         } else {
             handleSuccess();
         }
     };
 
-    const prevStep = () => {
+    const handleBack = () => {
         if (step > 1) {
-            setStep(prev => prev - 1);
+            setDirection(-1);
+            setStep(s => s - 1);
         }
     };
 
     const handleSuccess = () => {
-        setCompleted(true);
-
-        if (typeof confetti === 'function') {
+        setIsCompleted(true);
+        // Trigger Flutters
+        const duration = 3000;
+        const end = Date.now() + duration;
+        (function frame() {
             confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#FACC15', '#ffffff', '#22c55e']
+                particleCount: 5,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#FACC15', '#ffffff']
             });
-        }
+            confetti({
+                particleCount: 5,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#FACC15', '#ffffff']
+            });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
 
+        // Save & Login
         localStorage.setItem('user_session', 'active');
+        // Dispatch custom event to update App state immediately
+        window.dispatchEvent(new Event('auth-update'));
 
-        setTimeout(() => {
-            navigate('/');
-        }, 2500);
+        setTimeout(() => navigate('/'), 2500);
     };
 
-    const isStepValid = () => {
-        if (step === 1) return isValidStep1(formData);
-        if (step === 2) return isValidStep2(formData);
-        if (step === 3) return isValidStep3(formData);
-        return false;
-    };
-
-    const renderStep = () => {
-        if (completed) return null;
-
+    // --- Step Content ---
+    const renderStepContent = () => {
         switch (step) {
             case 1:
                 const strength = getPasswordStrength(formData.password);
                 return (
-                    <div className="space-y-4">
-                        <h3 className="text-2xl font-bold text-white mb-1">Create Account</h3>
-                        <p className="text-sm text-gray-400 mb-6">Let's secure your financial future.</p>
-
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
+                    <div className="space-y-5">
+                        <div className="grid gap-5">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Full Name</label>
                                 <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
-                                    <input name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" className="input-field pl-12" />
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                                    <input name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Sakshi Sharma" className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-12 pr-4 text-white outline-none transition-all" />
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Email Address</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
-                                    <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" className="input-field pl-12" />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                                    <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="sakshi@example.com" className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-12 pr-4 text-white outline-none transition-all" />
                                 </div>
                             </div>
-                            {/* Password Field */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Create Password</label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                                     <input
                                         name="password"
                                         type={showPassword ? "text" : "password"}
                                         value={formData.password}
                                         onChange={handleChange}
-                                        placeholder="Create a strong password"
-                                        className="input-field pl-12 pr-12"
+                                        placeholder="••••••••"
+                                        className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-12 pr-12 text-white outline-none transition-all"
                                     />
-                                    <button
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                                    >
+                                    <button onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
                                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
-                                {/* Strength */}
+                                {/* Strength Meter */}
                                 <div className="flex gap-1 h-1 mt-2">
-                                    <div className={`flex-1 rounded-full transition-all duration-500 ${strength >= 1 ? 'bg-red-500' : 'bg-white/10'}`}></div>
-                                    <div className={`flex-1 rounded-full transition-all duration-500 ${strength >= 2 ? 'bg-yellow-500' : 'bg-white/10'}`}></div>
-                                    <div className={`flex-1 rounded-full transition-all duration-500 ${strength >= 3 ? 'bg-green-500' : 'bg-white/10'}`}></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-5 pt-2">
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date of Birth</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
-                                    <input name="dob" type="date" value={formData.dob} onChange={handleChange} className="input-field pl-12 text-white scheme-dark" />
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mobile Number</label>
-                                <div className="flex">
-                                    <span className="bg-[#262626] border border-r-0 border-white/10 rounded-l-xl px-3 flex items-center text-gray-400 text-sm pl-4">+91</span>
-                                    <input name="mobile" type="tel" maxLength={10} value={formData.mobile} onChange={handleChange} placeholder="9876543210" className="input-field rounded-l-none pl-4" />
+                                    <div className={`flex-1 rounded-full transition-colors ${strength > 0 ? 'bg-red-500' : 'bg-white/10'}`} />
+                                    <div className={`flex-1 rounded-full transition-colors ${strength > 1 ? 'bg-yellow-500' : 'bg-white/10'}`} />
+                                    <div className={`flex-1 rounded-full transition-colors ${strength > 2 ? 'bg-green-500' : 'bg-white/10'}`} />
                                 </div>
                             </div>
                         </div>
@@ -242,56 +170,29 @@ export function OnboardingPage() {
             case 2:
                 return (
                     <div className="space-y-5">
-                        <h3 className="text-2xl font-bold text-white mb-1">Business Details</h3>
-                        <p className="text-sm text-gray-400 mb-6">Help us customize your tax compliance.</p>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Business Name</label>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Business Name</label>
                             <div className="relative">
-                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
-                                <input name="businessName" value={formData.businessName} onChange={handleChange} placeholder="Studio X" className="input-field pl-12" />
+                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                                <input name="businessName" value={formData.businessName} onChange={handleChange} placeholder="Design Studio" className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-12 pr-4 text-white outline-none transition-all" />
                             </div>
                         </div>
-
-                        <div className="grid md:grid-cols-2 gap-5">
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</label>
-                                <select name="businessType" value={formData.businessType} onChange={handleChange} className="input-field appearance-none pl-4">
-                                    <option value="">Select Type</option>
-                                    <option value="freelancer">Freelancer</option>
-                                    <option value="gig">Gig Worker</option>
-                                    <option value="trader">Small Trader</option>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Type</label>
+                                <select name="businessType" value={formData.businessType} onChange={handleChange} className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-4 pr-4 text-white outline-none appearance-none">
+                                    <option value="">Select</option>
+                                    <option value="freelance">Freelance</option>
+                                    <option value="business">Business</option>
                                 </select>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Turnover</label>
-                                <select name="turnover" value={formData.turnover} onChange={handleChange} className="input-field appearance-none pl-4">
-                                    <option value="">Annual Income</option>
-                                    <option value="low">Below 20L</option>
-                                    <option value="mid">20L - 1Cr</option>
-                                    <option value="high">Above 1Cr</option>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Turnover</label>
+                                <select name="turnover" value={formData.turnover} onChange={handleChange} className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-4 pr-4 text-white outline-none appearance-none">
+                                    <option value="">Annual</option>
+                                    <option value="<20L">Below 20L</option>
+                                    <option value=">20L">Above 20L</option>
                                 </select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">State</label>
-                            <select name="state" value={formData.state} onChange={handleChange} className="input-field appearance-none pl-4">
-                                <option value="">Select State</option>
-                                <option value="DL">Delhi</option>
-                                <option value="MH">Maharashtra</option>
-                                <option value="KA">Karnataka</option>
-                            </select>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Aadhaar Number</label>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-sm pointer-events-none">UID</div>
-                                <input name="aadhaar" maxLength={12} value={formData.aadhaar} onChange={handleChange} placeholder="12 Digit UID" className={`input-field pl-12 pr-10 ${formData.aadhaar.length === 12 ? 'border-green-500/50 focus:border-green-500' : ''}`} />
-                                {formData.aadhaar.length === 12 && (
-                                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 w-5 h-5 pointer-events-none" />
-                                )}
                             </div>
                         </div>
                     </div>
@@ -299,27 +200,16 @@ export function OnboardingPage() {
             case 3:
                 return (
                     <div className="space-y-5">
-                        <h3 className="text-2xl font-bold text-white mb-1">Tax Setup</h3>
-                        <p className="text-sm text-gray-400 mb-6">Securely linking your PAN for compliance.</p>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PAN Number</label>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">PAN Number</label>
                             <div className="relative">
-                                <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none" />
-                                <input name="pan" maxLength={10} value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" className="input-field pl-12 uppercase tracking-widest font-mono" />
+                                <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                                <input name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" className="w-full bg-[#0A0A0A] border border-white/10 focus:border-[#FACC15] rounded-xl py-3 pl-12 pr-4 text-white outline-none transition-all uppercase font-mono tracking-widest" maxLength={10} />
                             </div>
-                            <p className="text-xs text-gray-600 pl-1">Format: 5 Letters, 4 Digits, 1 Letter</p>
                         </div>
-
-                        <div className="pt-4 flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div>
-                                <h4 className="text-sm font-bold text-white">GST Registered?</h4>
-                                <p className="text-xs text-gray-400">Toggle if you have a GSTIN.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="gst" checked={formData.gst} onChange={handleChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FACC15]"></div>
-                            </label>
+                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+                            <h4 className="text-sm font-bold text-white mb-1">Almost Done!</h4>
+                            <p className="text-xs text-gray-400">By clicking "Get Started", you agree to our Terms and authorize TaxAlly to fetch your tax details.</p>
                         </div>
                     </div>
                 );
@@ -329,89 +219,94 @@ export function OnboardingPage() {
 
     return (
         <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-6 relative overflow-hidden">
-            {/* Backgrounds */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#FACC15]/10 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+            {/* Vibe Background */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#FACC15]/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
 
-            {/* Card */}
-            <div className="w-full max-w-lg bg-[#171717]/80 backdrop-blur-xl border border-white/5 p-8 md:p-10 rounded-[2rem] shadow-2xl relative z-10">
-
-                <div className="flex justify-center mb-6">
-                    <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium">
-                        <Lock className="w-3 h-3" />
-                        <span>End-to-End Encrypted & Secure</span>
+            <div className="w-full max-w-lg relative z-10">
+                {/* Header Badge */}
+                <div className="flex justify-center mb-8">
+                    <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-[#171717] border border-white/10 shadow-lg">
+                        <User size={14} className="text-[#FACC15]" />
+                        <span className="text-xs font-bold text-gray-300 tracking-wide">ACCOUNT SETUP</span>
                     </div>
                 </div>
 
-                {/* Progress */}
-                {!completed && (
-                    <div className="absolute top-8 right-8 w-12 h-12">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="24" cy="24" r="20" stroke="#333" strokeWidth="4" fill="transparent" />
-                            <circle cx="24" cy="24" r="20" stroke="#FACC15" strokeWidth="4" fill="transparent" strokeDasharray={126} strokeDashoffset={126 - (126 * step) / 3} className="transition-all duration-500" />
-                        </svg>
-                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-white">{step}/3</span>
-                    </div>
-                )}
-
-                <div className="min-h-[440px] flex flex-col justify-center">
-                    {completed ? (
-                        <div className="text-center space-y-6 py-10">
-                            <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-green-500/30">
-                                <Check className="w-12 h-12 text-white" />
+                <AnimatePresence mode="wait">
+                    {isCompleted ? (
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-[#171717] border border-white/10 rounded-3xl p-10 text-center shadow-2xl"
+                        >
+                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                                <Check className="w-10 h-10 text-white" />
                             </div>
-                            <h2 className="text-3xl font-bold text-white">All Set!</h2>
-                            <p className="text-gray-400">Your profile is ready. Redirecting...</p>
-                        </div>
+                            <h2 className="text-3xl font-bold text-white mb-2">Welcome, {formData.fullName.split(' ')[0]}!</h2>
+                            <p className="text-gray-400">Setting up your dashboard...</p>
+                        </motion.div>
                     ) : (
-                        renderStep()
+                        <motion.div
+                            key="form-card"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#171717]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl"
+                        >
+                            {/* Progress Header */}
+                            <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">
+                                        {step === 1 ? "Create Account" : step === 2 ? "Business Info" : "Final Step"}
+                                    </h2>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        {step === 1 ? "Let's get you on the grid." : step === 2 ? "Tell us about your work." : "Secure your tax profile."}
+                                    </p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full border-4 border-[#262626] flex items-center justify-center relative">
+                                    <span className="text-sm font-bold text-white relative z-10">{step}/3</span>
+                                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                                        <circle cx="20" cy="20" r="18" fill="transparent" stroke="#FACC15" strokeWidth="2" strokeDasharray="113" strokeDashoffset={113 - (113 * step) / 3} className="transition-all duration-500" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* Form Content */}
+                            <div className="min-h-[300px]">
+                                <AnimatePresence mode="wait" custom={direction}>
+                                    <motion.div
+                                        key={step}
+                                        custom={direction}
+                                        initial={{ opacity: 0, x: direction * 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: direction * -20 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        {renderStepContent()}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+                                <button
+                                    onClick={handleBack}
+                                    disabled={step === 1}
+                                    className={`flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-white transition-colors ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
+                                >
+                                    <ArrowLeft size={16} /> <span>Back</span>
+                                </button>
+                                <button
+                                    onClick={handleNext}
+                                    className="bg-[#FACC15] hover:bg-[#EAB308] text-black font-bold py-3 px-8 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.2)] hover:shadow-[0_0_30px_rgba(250,204,21,0.4)] transition-all flex items-center space-x-2"
+                                >
+                                    <span>{step === 3 ? "Get Started" : "Continue"}</span>
+                                    <ArrowRight size={18} />
+                                </button>
+                            </div>
+                        </motion.div>
                     )}
-                </div>
-
-                {!completed && (
-                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
-                        <button
-                            onClick={prevStep}
-                            disabled={step === 1}
-                            className={`flex items-center space-x-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            <span>Back</span>
-                        </button>
-
-                        <button
-                            onClick={nextStep}
-                            disabled={!isStepValid()}
-                            className="group bg-[#FACC15] hover:bg-[#EAB308] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 px-8 rounded-full shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] transition-all active:scale-[0.98] flex items-center space-x-2 cursor-pointer"
-                        >
-                            <span>{step === 3 ? 'Get Started' : 'Continue'}</span>
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
-                )}
-
+                </AnimatePresence>
             </div>
-
-            <style>{`
-        .input-field {
-            width: 100%;
-            background-color: #0A0A0A;
-            border: 1px solid #333;
-            border-radius: 0.75rem;
-            padding: 0.875rem 1rem;
-            color: white;
-            transition: all 0.2s;
-        }
-        .input-field:focus {
-            border-color: #FACC15;
-            outline: none;
-            box-shadow: 0 0 0 1px #FACC15;
-        }
-        .input-field:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-      `}</style>
         </div>
     );
 }
