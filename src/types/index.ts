@@ -96,3 +96,21 @@ export const TURNOVER_LABELS: Record<TurnoverRange, string> = {
   '20L_to_1Cr': '₹20 Lakhs - ₹1 Crore',
   above_1Cr: 'Above ₹1 Crore'
 };
+
+// Invoice Types
+export type InvoiceStatus = 'Verified' | 'Pending' | 'Flagged' | 'Rejected' | 'Paid' | 'Overdue';
+
+export interface Invoice {
+  id: string;
+  vendor: string;
+  category: string;
+  amount: number;
+  date: Date;
+  status: InvoiceStatus;
+  fileURL?: string;
+  ownerId: string;
+  fileName?: string;
+  createdAt: Date;
+  isEditing?: boolean; // For UI state
+}
+

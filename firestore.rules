@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Invoices Collection - Strict User Isolation
+    match /invoices/{invoiceId} {
+      // Users can only read their own invoices
+      allow read: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      
+      // Users can only create invoices with their own ownerId
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+      
+      // Users can only update/delete their own invoices
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+    }
+    
+    // Fallback for other collections during development
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
