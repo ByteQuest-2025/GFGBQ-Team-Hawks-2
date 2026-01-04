@@ -10,6 +10,11 @@ Team Hawks
 # Deployed Link
 [Insert Deployed Link Here]
 
+# google drive 
+https://drive.google.com/drive/folders/1YDtHlaUbsk_6OXLbCG081Tut-UA8OmqZ?usp=sharing
+
+
+
 ---
 
 # TaxAlly
@@ -52,9 +57,3 @@ TaxAlly is a real-time, intelligent tax & compliance assistant designed to remov
 2.  **Copilot:** Navigate to the "Copilot" tab to ask questions and get instant, jargon-free answers about tax laws.
 3.  **Reports:** Use the "Reports" section to analyze expenses and generate compliance reports.
 4.  **Invoices:** Manage your invoices and track payments.
-
-## Relevant Screenshots
-*(Please add relevant screenshots of the Dashboard, Copilot Interface, and Reports section here to help reviewers understand the project visually.)*
-
-![Dashboard Screenshot](path/to/dashboard_screenshot.png)
-![Copilot Screenshot](path/to/copilot_screenshot.png)
