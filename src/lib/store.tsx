@@ -79,38 +79,52 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!user) return;
 
         try {
-            // 1. Update Firebase Auth (Updates the name "Anita" in the Auth tab)
+            // 1. Update Firebase Auth (Only name, skip photo if it's too long)
             await firebaseUpdateProfile(user, {
                 displayName: profile.name,
-                photoURL: profile.photoURL
+                // We only send the photo to Auth if it's a short link. 
+                // If it's a long base64 string, we set it to null here to avoid the error.
+                photoURL: profile.photoURL && profile.photoURL.length < 2000
+                    ? profile.photoURL
+                    : user.photoURL
             });
 
-            // 2. Update Firestore (Creates/Updates the document in the 'users' collection)
-            // Use user.uid so the document matches your Auth ID
+            // 2. Update Firestore (Everything fits here!)
             const userRef = doc(db, 'users', user.uid);
             await setDoc(userRef, {
                 ...profile,
+                name: profile.name, // Ensure 'name' is saved correctly
                 updatedAt: new Date().toISOString()
             }, { merge: true });
 
-            console.log("Firebase sync complete for:", profile.name);
+            console.log("✅ Firebase sync successful for:", profile.name);
         } catch (error) {
-            console.error("Firebase Sync Error:", error);
+            console.error("❌ Firebase Sync Error:", error);
         }
     };
 
+    // Change 1: Updated setProfile to be more direct
     const setProfile = useCallback(async (profile: BusinessProfile) => {
+        console.log("Setting Profile to Firebase:", profile.name);
         syncLocalState(profile);
         await syncWithFirebase(profile);
     }, [syncLocalState]);
 
+    // Change 2: Better updateProfile that doesn't rely on outside state
     const updateProfile = useCallback(async (updates: Partial<BusinessProfile>) => {
-        if (state.profile) {
-            const updatedProfile = { ...state.profile, ...updates };
-            syncLocalState(updatedProfile);
-            await syncWithFirebase(updatedProfile);
-        }
-    }, [state.profile, syncLocalState]);
+        setState(current => {
+            if (current.profile) {
+                const updatedProfile = { ...current.profile, ...updates };
+
+                // We trigger the sync separately to ensure we have the new data
+                syncLocalState(updatedProfile);
+                syncWithFirebase(updatedProfile); // This will run with "Anita"
+
+                return { ...current, profile: updatedProfile };
+            }
+            return current;
+        });
+    }, [syncLocalState]);
 
     const clearProfile = useCallback(() => {
         localStorage.removeItem(STORAGE_KEY);

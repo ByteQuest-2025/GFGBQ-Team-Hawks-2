@@ -61,7 +61,7 @@ export const SettingsModule = () => {
     useEffect(() => {
         if (profile) {
             setProfileForm({
-                name: profile.ownerName || '', // Map to ownerName (User Name)
+                name: profile.ownerName || profile.name || '', // Map to ownerName (User Name)
                 email: profile.email || 'user@example.com',
                 photoURL: profile.photoURL || ''
             });
@@ -97,13 +97,18 @@ export const SettingsModule = () => {
 
     const handleProfileUpdate = () => {
         setProfileSaving(true);
+
+        // We update BOTH 'name' (for the database) and 'ownerName' (for your UI logic)
+        updateProfile({
+            name: profileForm.name,      // This fixes the "Anita" vs "anita" issue
+            ownerName: profileForm.name, // This keeps your UI consistent
+            photoURL: profileForm.photoURL
+        });
+
+        // I recommend removing the setTimeout or reducing it so it feels snappier
         setTimeout(() => {
-            updateProfile({
-                ownerName: profileForm.name, // Update ownerName
-                photoURL: profileForm.photoURL
-            });
             setProfileSaving(false);
-        }, 1500);
+        }, 500);
     };
 
     // 2. BUSINESS DETAILS HANDLERS
