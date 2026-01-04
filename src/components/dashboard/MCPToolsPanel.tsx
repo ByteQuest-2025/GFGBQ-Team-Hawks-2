@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calculator, FileText, Calendar, Banknote, Tag, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Calculator, FileText, Calendar, Banknote, Tag, ChevronUp, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 
 type ToolType = 'tax' | 'gst' | 'presumptive' | 'deadlines' | 'categorize';

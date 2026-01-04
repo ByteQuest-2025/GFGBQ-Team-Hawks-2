@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
+import { api } from '../lib/api';
+import { signInWithGoogle, auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft,
     ChevronRight,
     Calendar as CalendarIcon,
     Bell,
+    Check,
+    Loader,
     RefreshCw,
     AlertCircle,
     Search,
@@ -16,11 +20,7 @@ import {
     Clock,
     DollarSign,
     Tag,
-    Type,
-    Shield,
-    Lock,
-    Check,
-    Loader
+    Type
 } from 'lucide-react';
 
 // --- Mock Data ---
@@ -40,6 +40,7 @@ const CATEGORIES: any = {
     'Vendor Payment': 'bg-pink-500/10 text-pink-400 border-pink-500/20',
     'Business Meeting': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     Other: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    Google: 'bg-blue-500/10 text-blue-300 border-blue-500/20', // New Google Style
 };
 
 const DOT_COLORS: any = {
@@ -50,10 +51,11 @@ const DOT_COLORS: any = {
     'Vendor Payment': 'bg-pink-500',
     'Business Meeting': 'bg-cyan-500',
     Other: 'bg-gray-500',
+    Google: 'bg-blue-400', // New Google Dot
 };
 
 interface CalendarEvent {
-    id: number;
+    id: number | string;
     date: string;
     title: string;
     type: string;
@@ -72,12 +74,55 @@ export function Calendar() {
     const [searchQuery, setSearchQuery] = useState('');
 
     // Sync Portal State
-    const [syncStatus, setSyncStatus] = useState<'idle' | 'connecting' | 'authenticating' | 'fetching' | 'success' | 'failed'>('idle');
+    // Sync Portal State
     const [lastSynced, setLastSynced] = useState<string | null>(null);
-    const [syncToastMessage, setSyncToastMessage] = useState('');
 
     // Add Event Modal State
     const [showAddModal, setShowAddModal] = useState(false);
+
+    // Google Calendar State
+    const [isCalendarConnected, setIsCalendarConnected] = useState(!!localStorage.getItem('google_access_token'));
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleConnectCalendar = async () => {
+        try {
+            await signInWithGoogle();
+            setIsCalendarConnected(true);
+            await fetchGoogleEvents(); // Fetch immediately
+            alert("✅ Google Calendar Connected! Syncing events...");
+        } catch (error) {
+            console.error("Calendar Auth Failed", error);
+            alert("Failed to connect Google Calendar.");
+        }
+    };
+
+    const handleSyncToGoogle = async (event: CalendarEvent) => {
+        const token = localStorage.getItem('google_access_token');
+        if (!token) {
+            alert("Please connect Google Calendar first.");
+            return;
+        }
+
+        setIsSyncing(true);
+        try {
+            const firebaseToken = await auth.currentUser?.getIdToken();
+            if (!firebaseToken) throw new Error("Not authenticated");
+
+            await api.syncToCalendar(token, firebaseToken, {
+                summary: event.title,
+                description: event.description,
+                startTime: new Date(event.date).toISOString(),
+                // Default 1 hour duration
+                endTime: new Date(new Date(event.date).getTime() + 60 * 60 * 1000).toISOString()
+            });
+            alert("✅ Event synced to Google Calendar!");
+        } catch (error) {
+            console.error("Sync Failed", error);
+            alert("Failed to sync event.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
     const [showSuccessToast, setShowSuccessToast] = useState(false);
     const [newEvent, setNewEvent] = useState({
         title: '',
@@ -113,6 +158,58 @@ export function Calendar() {
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
+    // --- Google Calendar Fetching ---
+    const fetchGoogleEvents = async () => {
+        const token = localStorage.getItem('google_access_token');
+        if (!token) return;
+
+        try {
+            const firebaseToken = await auth.currentUser?.getIdToken();
+            if (!firebaseToken) return;
+
+            const googleEvents = await api.listCalendarEvents(token, firebaseToken);
+            if (googleEvents && Array.isArray(googleEvents)) {
+                // Map Google Events to our CalendarEvent format
+                const mappedEvents: CalendarEvent[] = googleEvents.map((ev: any) => ({
+                    id: ev.id, // Use string ID from Google
+                    title: ev.summary || 'No Title',
+                    type: 'Google', // Distinct type for styling
+                    date: (ev.start.dateTime || ev.start.date).split('T')[0],
+                    amount: 'N/A',
+                    status: 'Pending',
+                    description: ev.description || 'Imported from Google Calendar',
+                    priority: 'Medium'
+                }));
+
+                // Merge with existing events (avoid duplicates if needed, or just append)
+                // For simplicity, we filter out old 'Google' type events and re-add fresh ones
+                setEvents(prev => {
+                    const localEvents = prev.filter(e => e.type !== 'Google');
+                    const combined = [...localEvents, ...mappedEvents];
+                    return combined;
+                });
+                setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch Google Events", error);
+            // Check for 401 in the new error format from api.ts
+            if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
+                console.warn("Google Session Expired or Invalid Scope - Disconnecting");
+                setIsCalendarConnected(false);
+                localStorage.removeItem('google_access_token');
+                // Optional: Alert user only if it wasn't a silent background fetch
+                // alert("Google Calendar session expired. Please connect again.");
+            }
+        }
+    };
+
+    // Fetch on mount if connected
+    useEffect(() => {
+        if (isCalendarConnected) {
+            fetchGoogleEvents();
+        }
+    }, [isCalendarConnected]);
+
     // --- Search Logic ---
     const filteredEvents = events.filter(ev => {
         if (!searchQuery) return true;
@@ -124,53 +221,7 @@ export function Calendar() {
         );
     });
 
-    // --- Sync Portal Logic ---
-    const handleSync = () => {
-        if (syncStatus !== 'idle') return;
 
-        // Phase 1: Connecting
-        setSyncStatus('connecting');
-
-        // Phase 2: Authenticating
-        setTimeout(() => {
-            setSyncStatus('authenticating');
-        }, 1200);
-
-        // Phase 3: Fetching
-        setTimeout(() => {
-            setSyncStatus('fetching');
-        }, 2500);
-
-        // Phase 4: Success & Data Update
-        setTimeout(() => {
-            setSyncStatus('success');
-            setLastSynced('Just Now');
-            setSyncToastMessage('✅ Sync Successful! 1 New Deadline synchronized from GST Portal.');
-
-            // Add Mock "Synced" Event
-            const newSyncedEvent: CalendarEvent = {
-                id: Date.now(),
-                date: '2026-01-25',
-                title: 'Special Audit Task',
-                type: 'Other',
-                amount: 'TBD',
-                status: 'Pending',
-                description: 'Automatically imported from Government Portal.',
-                priority: 'High'
-            };
-
-            const updated = [...events, newSyncedEvent];
-            setEvents(updated);
-            localStorage.setItem('calendar_events', JSON.stringify(updated));
-
-            // Reset to Idle after showing success state
-            setTimeout(() => {
-                setSyncStatus('idle');
-                setSyncToastMessage('');
-            }, 4000);
-
-        }, 4500);
-    };
 
     const isToday = (day: number) => {
         return day === 3 && currentDate.getMonth() === 0 && currentDate.getFullYear() === 2026;
@@ -245,7 +296,6 @@ export function Calendar() {
                     key={day}
                     className={`min-h-[120px] border-b border-r border-white/5 p-3 transition-colors hover:bg-white/5 relative group cursor-pointer 
                         ${isToday(day) ? 'bg-[#FACC15]/5' : 'bg-transparent'}
-                        ${(syncStatus === 'success' && day === 25) ? 'animate-pulse bg-green-500/10' : ''} 
                     `}
                     onClick={() => {
                         if (daysEvents.length > 0) setSelectedEvent(daysEvents[0]);
@@ -303,30 +353,7 @@ export function Calendar() {
                             />
                         </div>
 
-                        {/* Sync Portal Button */}
-                        <div className="relative group">
-                            <button
-                                onClick={handleSync}
-                                disabled={syncStatus !== 'idle'}
-                                className={`flex items-center gap-2 px-5 py-3 bg-[#171717] border rounded-full font-medium transition-all w-[180px] justify-center
-                                    ${syncStatus === 'success' ? 'border-emerald-500/50 text-emerald-400' : 'border-white/10 hover:border-[#FACC15]/50 hover:text-[#FACC15]/90 text-gray-300'}
-                                    ${syncStatus !== 'idle' ? 'opacity-90 cursor-not-allowed' : ''}
-                                `}
-                            >
-                                {syncStatus === 'idle' && <><RefreshCw size={18} /> Sync Portal</>}
-                                {syncStatus === 'connecting' && <><Shield size={18} className="animate-pulse text-blue-500" /> Connecting...</>}
-                                {syncStatus === 'authenticating' && <><Lock size={18} className="text-amber-500" /> Verifying...</>}
-                                {syncStatus === 'fetching' && <><Loader size={18} className="animate-spin text-[#FACC15]" /> Fetching...</>}
-                                {syncStatus === 'success' && <><Check size={18} /> Synced</>}
-                            </button>
 
-                            {/* Security Tooltip */}
-                            {syncStatus !== 'idle' && (
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap text-[10px] font-medium text-[#94A3B8] bg-black/80 px-2 py-1 rounded border border-white/5 backdrop-blur-sm">
-                                    <Lock size={8} className="inline mr-1" /> Secured via 256-bit Encryption
-                                </div>
-                            )}
-                        </div>
 
                         <button
                             onClick={() => setShowAddModal(true)}
@@ -403,10 +430,7 @@ export function Calendar() {
                         animate={{ opacity: 1, y: 0 }}
                         className="lg:col-span-3 bg-[#171717] rounded-[2rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden h-[calc(100vh-250px)] relative"
                     >
-                        {/* Shimmer Overlay during Sync */}
-                        {syncStatus === 'fetching' && (
-                            <div className="absolute inset-0 z-50 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-100%] animate-shimmer" />
-                        )}
+
 
                         {/* Calendar Header inside Grid */}
                         <div className="p-8 border-b border-white/5 flex items-center justify-between bg-[#171717] z-10">
@@ -420,6 +444,19 @@ export function Calendar() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-5 text-sm font-medium text-[#94A3B8]">
+                                {/* Google Calendar Toggle */}
+                                <button
+                                    onClick={!isCalendarConnected ? handleConnectCalendar : undefined}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-bold uppercase tracking-wide
+                                        ${isCalendarConnected
+                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-default'
+                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20'}
+                                    `}
+                                >
+                                    {isCalendarConnected ? <Check size={12} /> : <CalendarIcon size={12} />}
+                                    {isCalendarConnected ? 'G-Cal Linked' : 'Link G-Cal'}
+                                </button>
+
                                 {lastSynced && (
                                     <span className="text-xs text-emerald-400 flex items-center gap-1">
                                         <RefreshCw size={10} /> Synced: {lastSynced}
@@ -649,25 +686,7 @@ export function Calendar() {
                     )}
                 </AnimatePresence>
 
-                {/* --- SYNC TOAST (Strategy 3) --- */}
-                <AnimatePresence>
-                    {syncToastMessage && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] bg-[#171717] border border-blue-500/30 px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.15)] flex items-center gap-4"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                <RefreshCw className="text-blue-400 w-5 h-5" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white leading-tight">Sync Complete</h4>
-                                <p className="text-xs text-[#94A3B8]">1 New Deadline synchronized from GST Portal.</p>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+
 
                 {/* --- COPILOT INSIGHT TOAST (Existing) --- */}
                 <motion.div
@@ -747,6 +766,14 @@ export function Calendar() {
                             <div className="space-y-4 mt-auto">
                                 <button className="w-full py-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-bold rounded-2xl shadow-[0_0_20px_rgba(250,204,21,0.2)] transition-all flex items-center justify-center gap-2 transform active:scale-95">
                                     <FileText size={20} /> File Now
+                                </button>
+                                <button
+                                    onClick={() => handleSyncToGoogle(selectedEvent)}
+                                    disabled={isSyncing}
+                                    className="w-full py-4 bg-[#4285F4] hover:bg-[#3367D6] text-white font-bold rounded-2xl shadow-[0_0_20px_rgba(66,133,244,0.3)] transition-all flex items-center justify-center gap-2 mb-4"
+                                >
+                                    {isSyncing ? <Loader className="animate-spin" size={20} /> : <CalendarIcon size={20} />}
+                                    {isSyncing ? 'Syncing...' : 'Sync to Google Calendar'}
                                 </button>
                                 <button className="w-full py-4 bg-transparent border border-white/10 hover:bg-white/5 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2">
                                     <Bell size={20} /> Remind Me Later

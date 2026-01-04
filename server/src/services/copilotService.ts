@@ -12,7 +12,7 @@ const USE_TAXALLY_SERVER = process.env.USE_TAXALLY_SERVER !== 'false'; // Defaul
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-pro' }) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }) : null;
 
 /**
  * Prune knowledge base to only include relevant sections based on user query.
@@ -56,6 +56,7 @@ function getRelevantContext(message: string) {
 }
 
 import { GoogleService } from './googleService';
+import { CalendarService } from './calendarService';
 
 // ... (imports)
 
@@ -155,6 +156,22 @@ function detectToolIntent(message: string, profile: BusinessProfile): { tool: st
             tool: 'check_advance_tax',
             params: { estimated_annual_tax: estimatedTax }
         };
+        return {
+            tool: 'check_advance_tax',
+            params: { estimated_annual_tax: estimatedTax }
+        };
+    }
+
+    // Calendar Request Intent
+    if (msg.includes('schedule') || msg.includes('calendar') || msg.includes('remind me')) {
+        return {
+            tool: 'calendar_create_event',
+            params: {
+                summary: 'Tax Reminder', // Default, should be extracted
+                description: message,
+                startTime: new Date().toISOString() // Placeholder
+            }
+        };
     }
 
     return null;
@@ -214,6 +231,9 @@ ${deadlines.map((d: any) => `- ${d.name}: ${d.date} (${d.daysUntil} days) [${d.u
 
         default:
             return JSON.stringify(result, null, 2);
+
+        case 'calendar_create_event':
+            return `**CALENDAR ACTION:** I have prepared a calendar event for: "${result.summary}". Please confirm to sync it.`;
     }
 }
 
@@ -226,19 +246,25 @@ export const CopilotService = {
                 if (isAvailable) {
                     console.log('🤖 Using TaxAlly HuggingFace server');
 
+                    // ✅ HARDCODE: Override name and type for userId '1'
+                    const displayName = profile.id === '1' ? 'Aditya' : profile.name;
+                    const displayType = profile.id === '1' ? 'business' : profile.type;
+
                     // Convert BusinessProfile to TaxAlly format
                     const taxallyProfile = {
-                        name: profile.name,
+                        name: displayName,
                         pan: profile.panNumber,
-                        entity_type: profile.type,
+                        entity_type: displayType,
                         gst_registered: profile.hasGST,
                         gstin: profile.gstNumber,
                         annual_turnover: getTurnoverFromRange(profile.turnover),
                         state: profile.state,
-                        type: profile.type,
+                        type: displayType,
                         turnover: profile.turnover,
                         hasGST: profile.hasGST
                     };
+
+                    console.log('📤 Sending to TaxAlly:', { name: displayName, type: displayType, userId: profile.id });
 
                     const response = await TaxAllyClient.chat({
                         message,
@@ -261,12 +287,26 @@ export const CopilotService = {
         // 2. Detect if we should call a TaxAlly tool (local tools)
         const toolIntent = detectToolIntent(message, profile);
         let toolContext = '';
+        let toolCalls: Array<{ tool: string; params: Record<string, any>; result: any }> = [];
 
         if (toolIntent) {
             try {
                 console.log(`🔧 Executing TaxAlly tool: ${toolIntent.tool}`);
-                const toolResult = await TaxAllyToolsService.executeTool(toolIntent.tool, toolIntent.params);
+                let toolResult;
+
+                if (toolIntent.tool === 'calendar_create_event') {
+                    // Special handling for Client-Side Action
+                    toolResult = toolIntent.params; // Pass params back as result
+                } else {
+                    toolResult = await TaxAllyToolsService.executeTool(toolIntent.tool, toolIntent.params);
+                }
+
                 toolContext = formatToolResult(toolIntent.tool, toolResult);
+                toolCalls.push({
+                    tool: toolIntent.tool,
+                    params: toolIntent.params,
+                    result: toolResult
+                });
                 console.log(`✅ Tool result obtained`);
             } catch (err) {
                 console.error('Tool execution failed:', err);
@@ -277,12 +317,16 @@ export const CopilotService = {
             // If no LLM but we have tool result, return formatted tool output
             if (toolContext) {
                 return {
-                    response: `[TaxAlly Tools] ${toolContext}\n\n(Configure GEMINI_API_KEY for personalized advice)`
+                    response: `[TaxAlly Tools] ${toolContext}\n\n(Configure GEMINI_API_KEY for personalized advice)`,
+                    tool_calls: toolCalls,
+                    source: 'local_tools'
                 };
             }
             console.warn('⚠️ Gemini API Key missing - returning mock response');
             return {
-                response: `[MOCK CA] Based on Section 44ADA, as a freelancer, you can declare 50% of your ₹${profile.turnover} turnover as income. (Configure GEMINI_API_KEY for real advice)`
+                response: `[MOCK CA] Based on Section 44ADA, as a freelancer, you can declare 50% of your ₹${profile.turnover} turnover as income. (Configure GEMINI_API_KEY for real advice)`,
+                tool_calls: [],
+                source: 'mock'
             };
         }
 
@@ -345,12 +389,18 @@ export const CopilotService = {
         try {
             const result = await model.generateContent(systemPrompt);
             const response = result.response;
-            return { response: response.text() };
+            return {
+                response: response.text(),
+                tool_calls: toolCalls,
+                source: toolCalls.length > 0 ? 'gemini_with_tools' : 'gemini'
+            };
         } catch (error) {
             console.error('Gemini API Error:', error);
             // Fallback response for UI - prevents 500
             return {
-                response: "I'm having trouble connecting to my brain right now (Gemini API Error). Please try again in a moment, or check if your API Key is valid."
+                response: "I'm having trouble connecting to my brain right now (Gemini API Error). Please try again in a moment, or check if your API Key is valid.",
+                tool_calls: toolCalls,
+                source: 'error'
             };
         }
     }

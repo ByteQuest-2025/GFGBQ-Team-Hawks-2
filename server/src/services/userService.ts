@@ -73,15 +73,23 @@ export const UserService = {
     async getUser(uid: string) {
         try {
             const doc = await db.collection('users').doc(uid).get();
-            if (doc.exists) return doc.data();
+            if (doc.exists) {
+                const data = doc.data();
+                // ✅ ADD THE DOCUMENT ID TO THE DATA
+                return { ...data, id: doc.id };
+            }
 
-            // If doc doesn't exist in valid DB, check mock? 
+            // If doc doesn't exist in valid DB, check mock?
             // Usually if DB is valid, we trust it.
             // But if DB threw error, we go to catch.
             return null;
         } catch (error) {
             console.warn(`[Mock Fallback] Firestore read failed. Checking in-memory store.`);
-            return mockDb[uid] || null;
+            const mockData = mockDb[uid];
+            if (mockData) {
+                return { ...mockData, id: uid };
+            }
+            return null;
         }
     }
 };

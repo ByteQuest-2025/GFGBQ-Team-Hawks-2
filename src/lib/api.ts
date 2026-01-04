@@ -325,5 +325,47 @@ export const api = {
         });
         if (!response.ok) throw new Error('Failed to execute TaxAlly tool');
         return response.json();
+    },
+
+    // ==========================================================================
+    // Google Calendar Integration
+    // ==========================================================================
+
+    /**
+     * CALENDAR - Sync Event to Google Calendar
+     */
+    async syncToCalendar(googleAccessToken: string, firebaseAuthToken: string, event: { summary: string; description?: string; startTime: string; endTime?: string }) {
+        const response = await fetch(`${API_URL}/calendar/sync`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${firebaseAuthToken}`
+            },
+            body: JSON.stringify({ googleAccessToken, event })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`Calendar Sync Failed: ${response.status} ${errorData.error || response.statusText}`);
+        }
+        return response.json();
+    },
+
+    /**
+     * CALENDAR - List Events
+     */
+    async listCalendarEvents(googleAccessToken: string, firebaseAuthToken: string) {
+        const response = await fetch(`${API_URL}/calendar/events`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${firebaseAuthToken}`
+            },
+            body: JSON.stringify({ googleAccessToken })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`Calendar List Failed: ${response.status} ${errorData.error || response.statusText}`);
+        }
+        return response.json();
     }
 };

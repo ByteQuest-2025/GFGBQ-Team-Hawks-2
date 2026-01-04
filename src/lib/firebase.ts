@@ -15,10 +15,19 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const signInWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+
+        if (token) {
+            localStorage.setItem('google_access_token', token);
+        }
+
         return result.user;
     } catch (error) {
         console.error('Error signing in with Google', error);

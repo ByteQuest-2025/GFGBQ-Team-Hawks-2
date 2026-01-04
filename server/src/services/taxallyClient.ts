@@ -70,6 +70,9 @@ export const TaxAllyClient = {
         try {
             const response = await fetch(`${TAXALLY_API_URL}/health`, {
                 method: 'GET',
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 signal: AbortSignal.timeout(5000) // 5 second timeout
             });
             return response.ok;
@@ -84,7 +87,11 @@ export const TaxAllyClient = {
      */
     async getHealth(): Promise<HealthResponse | null> {
         try {
-            const response = await fetch(`${TAXALLY_API_URL}/health`);
+            const response = await fetch(`${TAXALLY_API_URL}/health`, {
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            });
             if (!response.ok) return null;
             return await response.json() as HealthResponse;
         } catch (error) {
@@ -100,7 +107,8 @@ export const TaxAllyClient = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-Id': request.user_id || 'anonymous'
+                'X-User-Id': request.user_id || 'anonymous',
+                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({
                 message: request.message,

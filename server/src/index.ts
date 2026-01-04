@@ -19,6 +19,7 @@ import userRoutes from './routes/userRoutes';
 import reportsRoutes from './routes/reportsRoutes';
 import mcpRoutes from './routes/mcpRoutes';
 import taxallyRoutes from './routes/taxallyRoutes';
+import calendarRoutes from './routes/calendarRoutes';
 
 // Middleware
 app.use(cors());
@@ -36,6 +37,7 @@ app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/mcp', mcpRoutes);
 app.use('/api/v1/taxally', taxallyRoutes);
+app.use('/api/v1/calendar', calendarRoutes);
 
 // Basic Health Check
 app.get('/health', (req, res) => {
