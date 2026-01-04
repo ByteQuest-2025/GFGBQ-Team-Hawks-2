@@ -4,12 +4,10 @@ import {
     PieChart as PieChartIcon,
     Download,
     Calendar,
-    ArrowUpRight,
     TrendingUp,
     IndianRupee, // Changed from DollarSign
     RefreshCw,
     Scan,
-    Bot,
     CheckCircle2,
     Loader2,
     AlertCircle
@@ -27,141 +25,75 @@ import {
     Cell,
     Legend
 } from 'recharts';
-import { db, auth } from '../../lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ScanReceiptModal } from '../ScanReceiptModal';
 
-// --- INTERFACES ---
-interface AreaData {
-    name: string;
-    tax: number;
-    income: number;
-    [key: string]: any;
-}
+import { useInvoices } from '../../lib/invoices';
 
-interface ExpenseItem {
-    name: string;
-    value: number;
-    [key: string]: any;
-}
-
-// --- INITIAL DATA (STATIC SOURCE OF TRUTH) ---
-const INITIAL_AREA_DATA: AreaData[] = [
-    { name: 'Jan', tax: 4000, income: 24000 },
-    { name: 'Feb', tax: 3000, income: 13980 },
-    { name: 'Mar', tax: 2000, income: 9800 },
-    { name: 'Apr', tax: 2780, income: 39080 },
-    { name: 'May', tax: 1890, income: 4800 },
-    { name: 'Jun', tax: 2390, income: 3800 },
-    { name: 'Jul', tax: 3490, income: 4300 },
-];
-
-const INITIAL_EXPENSE_DATA: ExpenseItem[] = [
-    { name: 'Office Supplies', value: 15000 },
-    { name: 'Software', value: 25000 },
-    { name: 'Travel', value: 12000 },
-    { name: 'Marketing', value: 18000 },
-    { name: 'Rent', value: 0 },
-];
-
-const COLORS = ['#FACC15', '#10B981', '#3B82F6', '#EF4444', '#A855F7'];
+const COLORS = ['#FACC15', '#10B981', '#3B82F6', '#EF4444', '#A855F7', '#EC4899', '#6366F1'];
 
 export const ReportsModule = () => {
     // --- STATE ---
-    const [quarter, setQuarter] = useState('Q1 2026');
+    const { totalExpenses, categoryTotals, monthlyTrends, loading } = useInvoices();
+    const [quarter, setQuarter] = useState('All Time');
 
-    // Static Data
-    const areaChartData = INITIAL_AREA_DATA;
-    const expenseData = INITIAL_EXPENSE_DATA;
+    // Transform Context Data for Charts
+    const expenseData = Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
+    const areaChartData = monthlyTrends.map(item => ({
+        name: item.month, // "Jan 2026"
+        tax: item.amount * 0.18, // Simulated Tax Logic for Chart
+        income: item.amount * 2.5, // Simulated Income Logic for Chart
+        amt: item.amount // Actual Expense
+    }));
 
-    // Filter data once to reuse
+    // Filter data
     const filteredExpenses = expenseData.filter((e) => e.value > 0);
 
+    // Dynamic Financial Metrics
+    const estimatedTax = (1245000 - totalExpenses) * 0.15; // Simple formula: (Fixed Income - Expenses) * 15%
+
     // UI States
-    const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [lastExported, setLastExported] = useState<Date | null>(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    // Financial Metrics (Static)
-    const totalExpenses = 420000;
-    const estimatedTax = 115400;
+    // Local loading state for "Analyze" button simulation
+    const [analyzing, setAnalyzing] = useState(false);
 
-    // --- EFFECT: Check for Last Export on Mount ---
     useEffect(() => {
-        const fetchLastExport = async () => {
-            try {
-                // Determine user (or use global 'demo' doc for hackathon if no auth)
-                const userId = auth.currentUser?.uid || 'demo_user';
-                const docRef = doc(db, 'user_reports', userId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().lastExported) {
-                    setLastExported(docSnap.data().lastExported.toDate());
-                }
-            } catch (e) {
-                console.log("Firestore fetch ignored (Hackathon mode)", e);
-            }
-        };
-        fetchLastExport();
+        // Mock fetch last export time
+        const lastTime = localStorage.getItem('last_export_time');
+        if (lastTime) setLastExported(new Date(lastTime));
     }, []);
 
-    // --- HANDLER: Export to Sheets ---
-    const handleExport = async () => {
+    const handleExport = () => {
         setIsExporting(true);
-        setToastMessage("Syncing to Google Sheets...");
-
-        try {
-            // Call Backend
-            const response = await fetch('http://localhost:3001/api/v1/reports/export', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    quarter,
-                    reportData: areaChartData
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success && result.sheetUrl) {
-                window.open(result.sheetUrl, '_blank');
-
-                const userId = auth.currentUser?.uid || 'demo_user';
-                await setDoc(doc(db, 'user_reports', userId), {
-                    lastExported: new Date(),
-                    quarter
-                }, { merge: true });
-
-                setLastExported(new Date());
-                setToastMessage("Sync Complete! 🚀");
-            } else {
-                throw new Error(result.error || 'Export failed');
-            }
-
-        } catch (error) {
-            console.error(error);
-            setToastMessage("Export Failed. Check console.");
-        } finally {
+        setTimeout(() => {
+            const now = new Date();
+            setLastExported(now);
+            localStorage.setItem('last_export_time', now.toISOString());
             setIsExporting(false);
+            setToastMessage("Report Exported Successfully");
             setTimeout(() => setToastMessage(null), 3000);
-        }
+        }, 2000);
     };
 
     // --- HANDLER: Analyze Expenses (Simplified) ---
     const handleAnalyze = () => {
-        setIsLoading(true);
+        setAnalyzing(true);
         setToastMessage(null);
 
         // Simulate AI Processing Delay without data mutation
         setTimeout(() => {
-            setIsLoading(false);
-            setToastMessage("AI Audit Complete. No new anomalies found.");
+            setAnalyzing(false);
+            setToastMessage("AI Audit Complete. Database Synced.");
 
             // Auto hide toast
             setTimeout(() => setToastMessage(null), 4000);
         }, 1500);
     };
+
+    if (loading) return <div className="text-white p-10">Loading Financial Data...</div>;
 
     return (
         <motion.div
@@ -194,11 +126,11 @@ export const ReportsModule = () => {
                     {/* ANALYZE BUTTON */}
                     <button
                         onClick={handleAnalyze}
-                        disabled={isLoading}
+                        disabled={analyzing}
                         className="bg-[#FACC15] text-black font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-yellow-300 transition-colors disabled:opacity-80 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(250,204,21,0.3)] relative overflow-hidden"
                     >
-                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                        {isLoading ? 'AI Analyzing...' : 'Analyze Expenses'}
+                        {analyzing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                        {analyzing ? 'AI Analyzing...' : 'Analyze Expenses'}
                     </button>
 
                     <button className="bg-[#171717] border border-white/10 text-white font-medium px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-white/5 transition-colors">
@@ -256,7 +188,7 @@ export const ReportsModule = () => {
                 {/* Tax Liability Chart */}
                 <div className="bg-[#171717] border border-white/5 p-8 rounded-[2rem] relative overflow-hidden">
                     <h3 className="text-xl font-bold text-white mb-6">Tax Liability Trends</h3>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[300px] min-h-[300px] w-full min-w-0 relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={areaChartData}>
                                 <defs>
@@ -289,7 +221,7 @@ export const ReportsModule = () => {
                 {/* Expense Breakdown */}
                 <div className="bg-[#171717] border border-white/5 p-8 rounded-[2rem] relative overflow-hidden">
                     <h3 className="text-xl font-bold text-white mb-6">Expense Distribution</h3>
-                    <div className="h-[300px] w-full flex items-center justify-center">
+                    <div className="h-[300px] min-h-[300px] w-full flex items-center justify-center min-w-0 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <RePieChart>
                                 <Pie

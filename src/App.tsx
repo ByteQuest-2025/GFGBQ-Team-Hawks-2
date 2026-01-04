@@ -12,6 +12,8 @@ import { Settings } from './pages/Settings';
 import { SignInModal } from './components/SignInModal';
 import { Layout } from './components/Layout';
 import { useStore } from './lib/store';
+import { InvoicesProvider } from './lib/invoices';
+import { Outlet } from 'react-router-dom';
 import { signInWithGoogle } from './lib/firebase';
 import { api } from './lib/api';
 import './index.css';
@@ -126,12 +128,14 @@ function AppContent() {
 
           {/* Protected Routes Wrapped in Layout */}
           <Route element={isLoggedIn ? <Layout user={user} onLogout={handleLogout} /> : <Navigate to="/" />}>
-            <Route path="/dashboard" element={<Dashboard user={user} />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/copilot" element={<Copilot />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route element={<InvoicesProvider><Outlet /></InvoicesProvider>}>
+              <Route path="/dashboard" element={<Dashboard user={user} />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/copilot" element={<Copilot />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
